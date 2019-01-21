@@ -15,7 +15,7 @@
 int main() { 
 	int sockfd; 
 	char buffer[MAXLINE]; 
-	char *hello = "R12345"; 
+	char *hello = "R00001"; 
 	struct sockaddr_in servaddr; 
 
 	// Creating socket file descriptor 

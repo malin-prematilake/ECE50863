@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <string.h>
 #include "messageHandle.h"
 
 int charTo5Int(char arr[]){
@@ -111,7 +109,7 @@ void stringForAllSwitch(char msg[], int msgSize, int numOfNs, int ids[], int por
 	return;
 }
 
-void createRegResponse(int switchId, char msg[]){
+void createRegResponse(int switchId, char msg[], int msgSize){
 
 	//char msg[500];
 	
@@ -124,8 +122,8 @@ void createRegResponse(int switchId, char msg[]){
 	int ports[] = {3452, 3534, 8989, 4322};
 	char active[] = {'a','n','n','a'};
 	
-	stringForAllSwitch(msg, 500, 1, ids, ports, address, active);
-	msg[499]='\0';
+	stringForAllSwitch(msg, msgSize, 1, ids, ports, address, active);
+	msg[msgSize-1]='\0';
 	return;	
 }
 /*

@@ -1,6 +1,10 @@
 #ifndef MSG_HANDLE_
 #define MSG_HANDLE_
 
+#include <stdio.h>
+#include <string.h>
+#include "../logger/log.h"
+
 //struct for REGISTER_REQUEST
 typedef struct{
 	int switchID;
@@ -14,6 +18,6 @@ registerReq readRegReq(char *msg);
 
 int intToStr(int x, char str[], int d);
 
-void createRegResponse(int switchId, char msg[]);
+void createRegResponse(int switchId, char msg[], int msgSize);
 
 #endif
