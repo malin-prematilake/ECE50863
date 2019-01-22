@@ -43,7 +43,7 @@ char *activeness;
 char **addresses;
 
 //get the neighbours
-int getNeighbours(int id, char *nghbs){
+int getNeighbours(int id, int *nghbs){
 	
 	int i;
 	int nn=0;
@@ -58,23 +58,28 @@ int getNeighbours(int id, char *nghbs){
 	return nn;
 }
 //create the switch obj and add it to an array (later add this to the map)
-int addNewSwitch(int id, char *address, int port){
+int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	
 	addresses[id-1] = address;
 	ports[id-1] = port;
 	activeness[id-1] = 'a';
 	
-	char nghbrs[totalSwitchCount];
+	int nghbrs[totalSwitchCount];
 	
 	//get the nns
 	int numOfNs = getNeighbours(id, nghbrs);
 	
 	//create 3 arrays for the 3 parameters
-	char myAddresses[numOfNs][30];
-	int myPorts[numOfNs];
-	char myActiveness[numOfNs];
+	
+	char **myAddresses = (char **)malloc(sizeof(char *)*numOfNs);
 	
 	int i,j;
+	
+	for (i=0;i<numOfNs;i++)
+		myAddresses[i] = (char *)malloc(sizeof(char)*30);
+	
+	int myPorts[numOfNs];
+	char myActiveness[numOfNs];
 	
 	for(i=0;i<numOfNs;i++){
 		myActiveness[i] = activeness[nghbrs[i]];
@@ -84,17 +89,23 @@ int addNewSwitch(int id, char *address, int port){
 		
 			for(j=0;j<30;j++){
 				myAddresses[i][j] = addresses[nghbrs[i]][j];
+				
 			}
 		}
 	}
-	/*int i;
+	
 	for(i=0;i<totalSwitchCount;i++)
 		printf("==%d\n", nghbrs[i]);
-	*/
+	
 	currentSwitchCount++;
 	
 	//get the details of each neighbour
+	createRegResponse(id, response, resSize, nghbrs, 3, myAddresses, myPorts, myActiveness);
 	
+	for (i=0;i<numOfNs;i++)
+		free(myAddresses[i]);
+		
+	free(myAddresses);
 	return 0;
 }
 
@@ -107,8 +118,8 @@ void processMessageAndResponse(char msg[], char *address, int port, char respons
 		case 'R':
 			rq = readRegReq(msg);
 			printf("*****Current: %d %s\n",port, address);
-			addNewSwitch(rq.switchID, address, port);
-			createRegResponse(rq.switchID, response, responseSize);
+			addNewSwitch(rq.switchID, address, port, response, responseSize);
+			//createRegResponse(rq.switchID, response, responseSize);
 			response[responseSize-1] = EOF;
 			break;
 			
@@ -165,6 +176,8 @@ int main() {
 	activeness = (char *)malloc(sizeof(char)*totalSwitchCount);
 	addresses = (char **)malloc(sizeof(char*)*totalSwitchCount);
 	
+	memset(activeness, 'n', totalSwitchCount * sizeof(char));
+
 	for (i=0;i<totalSwitchCount;i++){
 		addresses[i] = (char *)malloc(sizeof(char)*30);
 		//activeness[i] = 'n';
@@ -219,7 +232,6 @@ int main() {
 
 		printf("IP address is: %s\n", inet_ntoa(cliaddr.sin_addr));
 		printf("port is: %d\n", (int) ntohs(cliaddr.sin_port));
-		printf("Client : %s\n", buffer);
 		
 		printf("Msg: %s\n",buffer);
 

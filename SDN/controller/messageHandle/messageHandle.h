@@ -18,6 +18,6 @@ registerReq readRegReq(char *msg);
 
 int intToStr(int x, char str[], int d);
 
-void createRegResponse(int switchId, char msg[], int msgSize);
+void createRegResponse(int switchId, char msg[], int msgSize, int ids[], int n, char *address[], int ports[], char active[]);
 
 #endif

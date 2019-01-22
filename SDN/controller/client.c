@@ -12,7 +12,7 @@
 #define MAXLINE 1024 
 
 // Driver code 
-int main() { 
+int main(int argc, char *argv[]) { 
 	int sockfd; 
 	char buffer[MAXLINE]; 
 	char *hello = "R00001"; 
@@ -33,7 +33,7 @@ int main() {
 	
 	int n, len; 
 	
-	sendto(sockfd, (const char *)hello, strlen(hello), 
+	sendto(sockfd, (const char *)argv[1], strlen(argv[1]), 
 		MSG_CONFIRM, (const struct sockaddr *) &servaddr, 
 			sizeof(servaddr)); 
 	printf("Hello message sent.\n"); 

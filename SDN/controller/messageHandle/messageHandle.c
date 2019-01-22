@@ -75,7 +75,7 @@ void stringForOneSwitch(char msg[], int msgSize, int id, char *address, int port
 	if (active=='a')
 		snprintf(msg, msgSize, "%05d,%c,%s,%05d*", id,active,address,port);
     	
-    else if (active=='n')
+    else 
 		snprintf(msg, msgSize, "%05d,%c*", id,active);
     
 	return;
@@ -109,7 +109,7 @@ void stringForAllSwitch(char msg[], int msgSize, int numOfNs, int ids[], int por
 	return;
 }
 
-void createRegResponse(int switchId, char msg[], int msgSize){
+void createRegResponse(int switchId, char msg[], int msgSize, int ids[], int numOfNs, char *address[], int ports[], char active[]){
 
 	//char msg[500];
 	
@@ -117,12 +117,12 @@ void createRegResponse(int switchId, char msg[], int msgSize){
 	//the real values must be obtained via the data structure
 	//use something like a hashmap->switchID:neighbours
 	
-	int ids[] = {234, 35234, 3, 3};
-	char *address[] = {"127.0.0.1","127.0.0.1","127.0.0.1","127.0.0.1"};
-	int ports[] = {3452, 3534, 8989, 4322};
-	char active[] = {'a','n','n','a'};
+	//int ids[] = {234, 35234, 3, 3};
+	//char *address[] = {"127.0.0.1","127.0.0.1","127.0.0.1","127.0.0.1"};
+	//int ports[] = {3452, 3534, 8989, 4322};
+	//char active[] = {'a','n','n','a'};
 	
-	stringForAllSwitch(msg, msgSize, 1, ids, ports, address, active);
+	stringForAllSwitch(msg, msgSize, numOfNs, ids, ports, address, active);
 	msg[msgSize-1]='\0';
 	return;	
 }
