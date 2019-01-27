@@ -7,7 +7,6 @@
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
-#include <pthread.h>
 
 #include "messageHandle/messageHandle.h"
 #include "logger/log.h"
@@ -17,9 +16,6 @@
 #define MAXLINE 		1024 
 #define CONFIG_FILE 	"config.txt"
 #define SIZE_OF_IP		30
-
-#define M				1
-#define K				5
 
 /*create struct for each msg type
  *create function to read each msg type (ones that are received)
@@ -40,29 +36,11 @@ typedef struct{
 	
 } switchType;
 
-//arrays for keeping switch properties
+//array for keeping all switches
+switchType *swArray;
 int *ports;
 char *activeness;
 char **addresses;
-unsigned long *lastAccessTimes;
-
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-
-unsigned long getControllerTime(){
-
-	return (unsigned long)time(NULL);
-}
-
-void updateActiveness(int id, char state){
-	activeness[id-1] = state;
-	return;
-}
-
-void updateLastAccessTime(int id){
-	lastAccessTimes[id-1] = getControllerTime();
-	return;
-}
-
 
 //get the neighbours
 int getNeighbours(int id, int *nghbs){
@@ -86,8 +64,6 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	ports[id-1] = port;
 	activeness[id-1] = 'a';
 	
-	lastAccessTimes[id-1] = getControllerTime();
-	
 	int nghbrs[totalSwitchCount];
 	
 	//get the nns
@@ -99,21 +75,18 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	
 	int i,j;
 	
-	for (i=0;i<numOfNs;i++){
+	for (i=0;i<numOfNs;i++)
 		myAddresses[i] = (char *)malloc(sizeof(char)*30);
-		
-	}
 	
 	int myPorts[numOfNs];
 	char myActiveness[numOfNs];
 	
 	for(i=0;i<numOfNs;i++){
-		myActiveness[i] = activeness[nghbrs[i]-1];
+		myActiveness[i] = activeness[nghbrs[i]];
 		
 		if (activeness[nghbrs[i]]=='a'){
-			myPorts[i] = ports[nghbrs[i]-1];
-			
-			//use strcpy
+			myPorts[i] = ports[nghbrs[i]];
+		
 			for(j=0;j<30;j++){
 				myAddresses[i][j] = addresses[nghbrs[i]][j];
 				
@@ -121,16 +94,11 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 		}
 	}
 	
-	printf("Neighbours of %d: ",id);
 	for(i=0;i<totalSwitchCount;i++)
-		printf("%d, ", nghbrs[i]);
+		printf("==%d\n", nghbrs[i]);
 	
-	printf("\n");
 	currentSwitchCount++;
 	
-	for(i=0;i<numOfNs;i++){
-		printf("Nghbr stuff: %d %c %d\n",nghbrs[i],myActiveness[i],myPorts[i]);
-	}
 	//get the details of each neighbour
 	createRegResponse(id, response, resSize, nghbrs, 3, myAddresses, myPorts, myActiveness);
 	
@@ -145,64 +113,28 @@ void processMessageAndResponse(char msg[], char *address, int port, char respons
 
 	char type = msg[0];
 	registerReq rq;
-	
 			
 	switch(type){
-		case 'R'://RegisterRequest
+		case 'R':
 			rq = readRegReq(msg);
-			printf("Current port and address: %d %s\n",port, address);
+			printf("*****Current: %d %s\n",port, address);
 			addNewSwitch(rq.switchID, address, port, response, responseSize);
+			//createRegResponse(rq.switchID, response, responseSize);
 			response[responseSize-1] = EOF;
 			break;
 			
-		case 'T': ;//TopologyUpdate
-			//activeness is set to 'a', update lastAccessTime, update reachableMatrix
-			//read packet
-			int senderSw;
-			int liveNeighbs[totalSwitchCount];
-			int numOfLiveNeighbs = readTopoUpdate(msg, liveNeighbs, &senderSw);
-			updateActiveness(senderSw, 'a');
-			updateLastAccessTime(senderSw);
-			printf("This is a T msg\n");
-			break;
-		
-		default:
-			printf("ERROR: Undefined message type\n");
+		case 'T':
+			printf("THis is a T msg\n");
 			break;
 	}
 	return;
-}
-
-//this will keep the time and set the activeness[i] to 'n' if switch does not respond
-void * timerThread(){
-	
-	//check last time the switch responded, compare it with the time now, if difference>M*K s set activeness to 'n'
-	int i;
-	
-	unsigned long difference = (unsigned long)(M*K);
-		
-	while(1){
-		unsigned long nowTime = getControllerTime();
-		printf("Checking switch access times\n");
-		for(i=0;i<totalSwitchCount;i++){
-			pthread_mutex_lock(&lock);
-				unsigned long temp1 = nowTime - lastAccessTimes[i];
-				
-				if(difference < temp1)
-					activeness[i]='n';
-			pthread_mutex_unlock(&lock);
-		}
-		//go to sleep for M*Ks
-		sleep(M*K);
-	}
 }
 
 int main() { 
 	
 	int sockfd; 
 	char buffer[MAXLINE];
-	
-	char *test = "Hello client\n";
+	char *hello = "Hello client\n";
 	 
 	struct sockaddr_in servaddr, cliaddr; 
 	
@@ -221,13 +153,12 @@ int main() {
 	servaddr.sin_port = htons(PORT); 
 	
 	// Bind the socket with the server address 
-	if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) { 
+	if ( bind(sockfd, (const struct sockaddr *)&servaddr, 
+			sizeof(servaddr)) < 0 ) 
+	{ 
 		perror("bind failed"); 
 		exit(EXIT_FAILURE); 
 	} 
-	
-	//thread init
-	pthread_t tid[2];
 	
 	//start the log
 	initializeLog();
@@ -244,15 +175,12 @@ int main() {
 	ports = (int *)malloc(sizeof(int)*totalSwitchCount);
 	activeness = (char *)malloc(sizeof(char)*totalSwitchCount);
 	addresses = (char **)malloc(sizeof(char*)*totalSwitchCount);
-	lastAccessTimes = (unsigned long*)malloc(sizeof(unsigned long)*totalSwitchCount);
 	
 	memset(activeness, 'n', totalSwitchCount * sizeof(char));
-	memset(ports, 0, totalSwitchCount * sizeof(int));
-	memset(lastAccessTimes, 0, totalSwitchCount * sizeof(unsigned long));
 
 	for (i=0;i<totalSwitchCount;i++){
 		addresses[i] = (char *)malloc(sizeof(char)*30);
-		memset(addresses[i], '\0', 30 * sizeof(char));
+		//activeness[i] = 'n';
 	}
 		
 	//initialize bw and delay matrices
@@ -272,10 +200,26 @@ int main() {
 	}
 	
 	readFile(CONFIG_FILE, bandWidth, delay, totalSwitchCount);
+	/*
+	printf("Topology bandwidths:\n");
 	
-	if( pthread_create(&tid[0], NULL, timerThread, NULL) != 0 )
-	   printf("Failed to create thread\n");
-	   
+	for (i=0;i<totalSwitchCount;i++){
+		for (j=0;j<totalSwitchCount;j++){
+			printf("%d ",bandWidth[i][j]);
+		}
+		printf("\n");
+	}
+	
+	printf("Topology delays:\n");
+	
+	for (i=0;i<totalSwitchCount;i++){
+		for (j=0;j<totalSwitchCount;j++){
+			printf("%d ",delay[i][j]);
+		}
+		printf("\n");
+	}	
+*/
+
 	int len, n; 
 
 	while(1){
@@ -288,39 +232,29 @@ int main() {
 		char tempAddr[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(cliaddr.sin_addr), tempAddr, INET_ADDRSTRLEN);
 		
-		int tempPort = ntohs(cliaddr.sin_port);
-		
+		int tempPort;
 		printf("IP address is: %s\n", tempAddr);
-		printf("port is: %d\n", tempPort);
+		printf("port is: %d\n", (int) ntohl(cliaddr.sin_port));
 		
 		printf("Msg: %s\n",buffer);
 
 		int responseSize = 500;
 		char response[responseSize];
 		
-		processMessageAndResponse(buffer, tempAddr, tempPort, response, responseSize);
-		
-		char *responseD = "TTTT\n";
-		
-		response[responseSize-1] = EOF;
+		processMessageAndResponse(buffer, tempAddr, (int) ntohl(cliaddr.sin_port), response, responseSize);
 		
 		printf("The response: %s\n",response);
 		
-		//sendto(sockfd, (const char *)responseD, strlen(responseD), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len); 
-		sendto(sockfd, (const char *)response, strlen(response), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len); 
+		sendto(sockfd, (const char *)response, strlen(response), 
+			MSG_CONFIRM, (const struct sockaddr *) &cliaddr, 
+				len); 
 				
 		printf("Response message sent.\n");
 		
-		
-		for (i=0;i<totalSwitchCount;i++){
-			printf("----%d----%c---%s----%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
-		}
+		//for (i=0;i<totalSwitchCount;i++){
+			//printf("----%d----%c---%s \n",ports[i],activeness[i],addresses[i]);
+		//}
 	}
-	pthread_join(tid[0],NULL);
+	
 	return 0; 
 } 
-/*
- * 2 parallel processsses
- * 1. message handle
- * 2. timer
- * */

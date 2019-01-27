@@ -20,6 +20,4 @@ int intToStr(int x, char str[], int d);
 
 void createRegResponse(int switchId, char msg[], int msgSize, int ids[], int n, char *address[], int ports[], char active[]);
 
-int readTopoUpdate(char *msg, int nghbrs[], int *sender);
-	
 #endif
