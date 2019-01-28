@@ -18,7 +18,7 @@
 #define CONFIG_FILE 	"config.txt"
 #define SIZE_OF_IP		30
 
-#define M				1
+#define M				10
 #define K				5
 
 /*create struct for each msg type
@@ -27,9 +27,11 @@
  */
 int currentSwitchCount = 0;
 int totalSwitchCount = 0;
+int enableRouteUpdate = 0;
 
 int **bandWidth;
 int **delay;
+int **edges;//0 if no edge, 1 if edge
 
 typedef struct{
 	int id;
@@ -45,11 +47,12 @@ int *ports;
 char *activeness;
 char **addresses;
 unsigned long *lastAccessTimes;
+int **neighbours;
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-unsigned long getControllerTime(){
 
+unsigned long getControllerTime(){
 	return (unsigned long)time(NULL);
 }
 
@@ -79,29 +82,83 @@ int getNeighbours(int id, int *nghbs){
 	}
 	return nn;
 }
+
+void setEdges(int swId, int nghbrs[], int numOfNs, int val){
+	
+	int i;
+	for(i=0;i<numOfNs;i++){
+		if(nghbrs[i]!=0)
+			edges[swId-1][nghbrs[i]-1] = val;
+			edges[nghbrs[i]-1][swId-1] = val;
+	}
+	
+	return;
+}
+
+int setLinks(){
+	
+	int change = 0;
+	int prev;
+	
+	int i,j;
+	
+	for(i=0;i<totalSwitchCount;i++){
+		for(j=0;j<totalSwitchCount;j++){
+			prev = edges[i][j];
+			
+			if(bandWidth[i][j]!=0){
+				if((activeness[i]=='a')&&(activeness[j]=='a')){
+					edges[i][j] = 1;
+				} else{
+					edges[i][j] = 0;
+				}
+			}
+			if (prev!=edges[i][j])
+				change=1;
+		}
+	}
+	return change;
+}
+
+void initializeLinks(){
+	
+	int i,j;
+	for(i=0;i<totalSwitchCount;i++){
+		for(j=0;j<totalSwitchCount;j++){		
+			edges[i][j] = -1;
+	
+		}
+	}
+	return;
+}
+
 //create the switch obj and add it to an array (later add this to the map)
 int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	
 	addresses[id-1] = address;
 	ports[id-1] = port;
 	activeness[id-1] = 'a';
-	
 	lastAccessTimes[id-1] = getControllerTime();
+	
+	int tx = setLinks();//tx is useless
 	
 	int nghbrs[totalSwitchCount];
 	
-	//get the nns
+	//get the number of ns
 	int numOfNs = getNeighbours(id, nghbrs);
-	
-	//create 3 arrays for the 3 parameters
-	
-	char **myAddresses = (char **)malloc(sizeof(char *)*numOfNs);
 	
 	int i,j;
 	
-	for (i=0;i<numOfNs;i++){
-		myAddresses[i] = (char *)malloc(sizeof(char)*30);
+	for(i=0;i<numOfNs;i++){
+		neighbours[id-1][i]=nghbrs[i];
 		
+	}
+	
+	//create 3 arrays for the 3 parameters
+	char **myAddresses = (char **)malloc(sizeof(char *)*numOfNs);
+	
+	for (i=0;i<numOfNs;i++){
+		myAddresses[i] = (char *)malloc(sizeof(char)*30);		
 	}
 	
 	int myPorts[numOfNs];
@@ -121,12 +178,17 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 		}
 	}
 	
+	currentSwitchCount++;
+	
+	if((!enableRouteUpdate)&&(totalSwitchCount==currentSwitchCount))
+			enableRouteUpdate = 1;
+		
 	printf("Neighbours of %d: ",id);
 	for(i=0;i<totalSwitchCount;i++)
 		printf("%d, ", nghbrs[i]);
 	
 	printf("\n");
-	currentSwitchCount++;
+	
 	
 	for(i=0;i<numOfNs;i++){
 		printf("Nghbr stuff: %d %c %d\n",nghbrs[i],myActiveness[i],myPorts[i]);
@@ -140,13 +202,44 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	free(myAddresses);
 	return 0;
 }
+int liveN(int id, int array[], int number){
+	int i;
+	
+	for(i=0;i<number;i++){
+		if(id==array[i])
+			return 1;//live
+	}
+	return 0;//not live
+}
+
+//if both are active set edge, otherwise no
+void updateActiveNeighbs(int liveNs[], int number){
+	
+	int i;
+	
+	for(i=0;i<number;i++){
+		updateActiveness(liveNs[i],'a');
+		updateLastAccessTime(liveNs[i]);
+	}
+	return;
+}
+
+void updateDeadNeighbs(int deadNs[], int number){
+	
+	int i;
+	//printf("Thissssss: %d\n",number);
+	for(i=0;i<number;i++){
+		//printf("Thirrrrrr: %d\n",deadNs[i]);
+		updateActiveness(deadNs[i],'n');
+	}
+	return;
+}
 
 void processMessageAndResponse(char msg[], char *address, int port, char response[], int responseSize){
 
 	char type = msg[0];
 	registerReq rq;
 	
-			
 	switch(type){
 		case 'R'://RegisterRequest
 			rq = readRegReq(msg);
@@ -158,17 +251,39 @@ void processMessageAndResponse(char msg[], char *address, int port, char respons
 		case 'T': ;//TopologyUpdate
 			//activeness is set to 'a', update lastAccessTime, update reachableMatrix
 			//read packet
-			int senderSw;
+			int senderSw, deadNs, numOfLiveNeighbs;
 			int liveNeighbs[totalSwitchCount];
-			int numOfLiveNeighbs = readTopoUpdate(msg, liveNeighbs, &senderSw);
+			int deadNeighbs[totalSwitchCount];
+			
+			readTopoUpdate(msg, liveNeighbs, deadNeighbs, &senderSw, &numOfLiveNeighbs, &deadNs);
+			
 			updateActiveness(senderSw, 'a');
 			updateLastAccessTime(senderSw);
+			//update activeness neighbours
+			updateActiveNeighbs(liveNeighbs, numOfLiveNeighbs);
+			
+			updateDeadNeighbs(deadNeighbs, deadNs);
+			
+			
+			
+			int anyChange = setLinks();
+			
+			if ((anyChange)&&(enableRouteUpdate)){
+				//printf("MUST SEND ROUTE UPDATE\n");
+				strncpy(response, "MUST SEND ROUTE UPDATE\n", 23);
+				int yy[] = {1,3,2,3,5};
+				int xx[] = {1,2,3,4,5};
+				createRouteUpdate(response, totalSwitchCount, xx, yy);
+				
+				enableRouteUpdate = 0;
+				
+			} else {
+				printf("NO UPDATE\n");
+				strncpy(response, "0\n", 2);
+			}
+			
 			printf("This is a T msg\n");
-			break;
-		
-		default:
-			printf("ERROR: Undefined message type\n");
-			break;
+			break;	
 	}
 	return;
 }
@@ -183,6 +298,7 @@ void * timerThread(){
 		
 	while(1){
 		unsigned long nowTime = getControllerTime();
+		
 		printf("Checking switch access times\n");
 		for(i=0;i<totalSwitchCount;i++){
 			pthread_mutex_lock(&lock);
@@ -192,9 +308,13 @@ void * timerThread(){
 					activeness[i]='n';
 			pthread_mutex_unlock(&lock);
 		}
-		//go to sleep for M*Ks
+		
+		if(1==setLinks())
+			enableRouteUpdate=1;
+			
 		sleep(M*K);
 	}
+	
 }
 
 int main() { 
@@ -238,9 +358,6 @@ int main() {
 
 	int i,j;
 	
-	//initialize swArray
-	//swArray = (switchType *)malloc(sizeof(switchType)*totalSwitchCount);
-	
 	ports = (int *)malloc(sizeof(int)*totalSwitchCount);
 	activeness = (char *)malloc(sizeof(char)*totalSwitchCount);
 	addresses = (char **)malloc(sizeof(char*)*totalSwitchCount);
@@ -258,27 +375,52 @@ int main() {
 	//initialize bw and delay matrices
 	bandWidth = (int **)malloc(totalSwitchCount*sizeof(int *));
 	delay = (int **)malloc(totalSwitchCount*sizeof(int *));
+	edges = (int **)malloc(totalSwitchCount*sizeof(int *));
+	neighbours = (int **)malloc(totalSwitchCount*sizeof(int *));
 	
 	for (i=0;i<totalSwitchCount;i++){
 		bandWidth[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 		delay[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+		edges[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+		neighbours[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 	}
 	
 	for (i=0;i<totalSwitchCount;i++){
 		for (j=0;j<totalSwitchCount;j++){
 			bandWidth[i][j]=0;
 			delay[i][j]=0;
+			edges[i][j]=-1;
+			neighbours[i][j]=0;
 		}
 	}
 	
-	readFile(CONFIG_FILE, bandWidth, delay, totalSwitchCount);
+	readFile(CONFIG_FILE, bandWidth, delay, edges, totalSwitchCount);
 	
 	if( pthread_create(&tid[0], NULL, timerThread, NULL) != 0 )
 	   printf("Failed to create thread\n");
 	   
 	int len, n; 
 
+	
+	
 	while(1){
+				
+		printf("EDGES:\n");
+		for (i=0;i<totalSwitchCount;i++){
+			for (j=0;j<totalSwitchCount;j++){
+					printf("%d ",edges[i][j]);
+			}
+			printf("\n");
+		}
+		printf("NEIGHBOURS:\n");
+		for (i=0;i<totalSwitchCount;i++){
+			for (j=0;j<totalSwitchCount;j++){
+					printf("%d ",neighbours[i][j]);
+			}
+			printf("\n");
+		}
+
+
 		printf("Waiting for switch...\n");
 		n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
 				MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
@@ -315,6 +457,11 @@ int main() {
 		for (i=0;i<totalSwitchCount;i++){
 			printf("----%d----%c---%s----%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
 		}
+		
+		/*for (i=0;i<responseSize;i++){
+			response[i]=0;
+		}*/
+		memset(response, 0, responseSize);
 	}
 	pthread_join(tid[0],NULL);
 	return 0; 

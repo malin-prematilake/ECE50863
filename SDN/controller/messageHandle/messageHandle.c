@@ -115,7 +115,7 @@ void createRegResponse(int switchId, char msg[], int msgSize, int ids[], int num
 }
 
 //U#TotalSwitches,sw1:nxtHop,sw2:nxtHop,...
-void createRouteUpdate(char *msg, int sWs, int nxtHops[]){
+void createRouteUpdate(char *msg, int sWs, int destSwId[], int nxtHops[]){//sws is the total sumber of switches
 //void createRouteUpdate(int sWs){
 
 	char prefix[7];
@@ -131,67 +131,75 @@ void createRouteUpdate(char *msg, int sWs, int nxtHops[]){
 	
 	for(i=0;i<sWs;i++){
 		char str[12];
-		snprintf(str, 13, "%05d:%05d,", (i+1), nxtHops[i]);
+		snprintf(str, 13, "%05d:%05d,", destSwId[i], nxtHops[i]);
 		strcat(msg, str);
 	}
 	
 	return;
 }
 
-//Format: TSWID,#ofSwitches,SwIDs(each 5 digit)
-int readTopoUpdate(char *msg, int nghbrs[], int *sender){
+//Format: TSWID,#ofActiveSwitches,#ofNotActiveSwitches,ActiveSwIDs(each 5 digit)*DeactiveSWIDs...
+void readTopoUpdate(char *msg, int activeNghbrs[], int deActiveNghbrs[], int *sender, int *activeNs, int *deactiveNs){
 	
-	int myID, number;
+	int myID, numberActive, numberDeactive;
 	
 	char *rest;
 	
-	int n = sscanf(msg, "T%05d,%05d", &myID, &number);
+	int n = sscanf(msg, "T%05d,%05d,%05d,", &myID, &numberActive, &numberDeactive);
 	*sender = myID;
+	*activeNs = numberActive;
+	*deactiveNs = numberDeactive;
 	
-	rest = (char *)malloc(sizeof(char)*5*number);
-	n = sscanf(msg, "T%05d,%05d,%s", &myID, &number, rest);
+	rest = (char *)malloc(sizeof(char)*5*(numberActive+numberDeactive));
+	n = sscanf(msg, "T%05d,%05d,%05d,%s", &myID, &numberActive, &numberDeactive, rest);
 
 	//printf("This is Rest: %s\n", rest);
-	
-	//int nghbrs[number];
-	
+	/*
+	int activeNghbrs[numberActive];
+	int deActiveNghbrs[numberDeactive];
+	*/
+
 	int init_size = strlen(rest);
 	char delim[] = ",";
-
 	char *ptr = strtok(rest, delim);
-
-	int i=0,j;
+	
+	int i=0,j=0;
 	
 	while(ptr != NULL){
-		nghbrs[i] = atoi(ptr);
-		i++;
+		if(i<numberActive){
+			activeNghbrs[i] = atoi(ptr);
+			i++;
+		}
+		else {
+			deActiveNghbrs[j] = atoi(ptr);
+			j++;
+		}
 		ptr = strtok(NULL, delim);
 	}
 	
+	for(i=0;i<numberActive;i++)
+		printf("%d ",activeNghbrs[i]);
+	
+	printf("\n");
+	
+	for(i=0;i<numberDeactive;i++)
+		printf("%d ",deActiveNghbrs[i]);
+	printf("\n");
+	
 	free(rest);
-	return number;
+
+	return;
 }
 /*
 int main(){
 	
 	int re[6];
-	int sw;
+	int ac,dc,sw;
 	
-	int yy = readTopoUpdate("T00012,00003,23433,34352,34213", re, &sw);
+	readTopoUpdate("T00012,00003,00002,23433,34352,34213,34343,45433", re, &sw, &ac, &dc);
 	
-	//printf("The neighbs (%d) of switch %d: ", yy, sw);
+	printf("active (%d) deactive %d\n ", ac, dc);
 	
-	int j;
-	
-	//for (j=0;j<yy;j++)
-		//printf("%d, ",re[j]);
-	//printf("\n");
-	
-	//U#TotalSwitches,sw1:nxtHop,sw2:nxtHop,...
-	char msg[7+12*3];
-	
-	int df[] = {3,7,3};
-	createRouteUpdate(msg, 3, df);
 	
 	return 0;
 }

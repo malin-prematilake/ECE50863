@@ -10,7 +10,7 @@
 #define N 7
 
 int readNumOfSwitches(char *fileName);
-void readFile(const char* file_name, int **bandWidth, int **delay, int numOfSwitches);
+void readFile(const char* file_name, int **bandWidth, int **delay, int **edges, int numOfSwitches);
 int dijsktra(int cost[][N],int source,int target);
 
 #endif

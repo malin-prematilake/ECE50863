@@ -19,7 +19,8 @@ registerReq readRegReq(char *msg);
 int intToStr(int x, char str[], int d);
 
 void createRegResponse(int switchId, char msg[], int msgSize, int ids[], int n, char *address[], int ports[], char active[]);
+void createRouteUpdate(char *msg, int sWs, int destSwId[], int nxtHops[]);
 
-int readTopoUpdate(char *msg, int nghbrs[], int *sender);
+void readTopoUpdate(char *msg, int nghbrs[], int ff[], int *sender, int *activeNs, int *deactiveNs);
 	
 #endif

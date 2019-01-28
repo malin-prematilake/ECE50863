@@ -25,7 +25,7 @@ int readNumOfSwitches(char *fileName){
 	return (int)atoi(ch);
 }
 
-void readFile(const char* file_name, int **bandWidth, int **delay, int numOfSwitches){
+void readFile(const char* file_name, int **bandWidth, int **delay, int **edges, int numOfSwitches){
 	
 	FILE* file = fopen (file_name, "r");
 	int i = 0;
@@ -35,16 +35,21 @@ void readFile(const char* file_name, int **bandWidth, int **delay, int numOfSwit
 	fscanf (file, "%d", &i);    
 	
 	while (!feof (file)){ 
-	  fscanf (file, "%d", &row);
-	  fscanf (file, "%d", &col);
-	  fscanf (file, "%d", &bw);
-	  fscanf (file, "%d", &dly);
+		fscanf (file, "%d", &row);
+		fscanf (file, "%d", &col);
+		fscanf (file, "%d", &bw);
+		fscanf (file, "%d", &dly);
+
+		bandWidth[row-1][col-1] = bw;
+		delay[row-1][col-1] = dly;
+
+		bandWidth[col-1][row-1] = bw;
+		delay[col-1][row-1] = dly;
 	  
-	  bandWidth[row-1][col-1] = bw;
-	  delay[row-1][col-1] = dly;
-	  
-	  bandWidth[col-1][row-1] = bw;
-	  delay[col-1][row-1] = dly;      
+		if(bw!=0){
+			edges[row-1][col-1] = 1;
+			edges[col-1][row-1] = 1;
+		}
 	}
 	
 	fclose (file);        
