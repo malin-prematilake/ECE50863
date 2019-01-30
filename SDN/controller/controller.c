@@ -13,11 +13,13 @@
 #include "logger/log.h"
 #include "widestPath/widestPath.h"
 
+//network properties
 #define PORT	 		8080 
 #define MAXLINE 		1024 
 #define CONFIG_FILE 	"config.txt"
 #define SIZE_OF_IP		30
 
+//timer thread properties
 #define M				10
 #define K				5
 
@@ -31,7 +33,7 @@ int enableRouteUpdate = 0;
 
 int **bandWidth;
 int **delay;
-int **edges;//0 if no edge, 1 if edge
+int **bWForCal;//0 if no edge, 1 if edge
 
 typedef struct{
 	int id;
@@ -82,7 +84,7 @@ int getNeighbours(int id, int *nghbs){
 	}
 	return nn;
 }
-
+/*
 void setEdges(int swId, int nghbrs[], int numOfNs, int val){
 	
 	int i;
@@ -93,7 +95,7 @@ void setEdges(int swId, int nghbrs[], int numOfNs, int val){
 	}
 	
 	return;
-}
+}*/
 
 int setLinks(){
 	
@@ -104,16 +106,16 @@ int setLinks(){
 	
 	for(i=0;i<totalSwitchCount;i++){
 		for(j=0;j<totalSwitchCount;j++){
-			prev = edges[i][j];
+			prev = bWForCal[i][j];
 			
-			if(bandWidth[i][j]!=0){
-				if((activeness[i]=='a')&&(activeness[j]=='a')){
-					edges[i][j] = 1;
-				} else{
-					edges[i][j] = 0;
-				}
+			//if(bandWidth[i][j]!=0){
+			if((activeness[i]=='a')&&(activeness[j]=='a')){
+				bWForCal[i][j] = bandWidth[i][j];
+			} else{
+				bWForCal[i][j] = INFINITE;
 			}
-			if (prev!=edges[i][j])
+			//}
+			if (prev!=bWForCal[i][j])
 				change=1;
 		}
 	}
@@ -125,7 +127,7 @@ void initializeLinks(){
 	int i,j;
 	for(i=0;i<totalSwitchCount;i++){
 		for(j=0;j<totalSwitchCount;j++){		
-			edges[i][j] = -1;
+			bWForCal[i][j] = INFINITE;
 	
 		}
 	}
@@ -243,13 +245,19 @@ void processMessageAndResponse(char msg[], char *address, int port, char respons
 	switch(type){
 		case 'R'://RegisterRequest
 			rq = readRegReq(msg);
-			printf("Current port and address: %d %s\n",port, address);
+			logRegRequest(rq.switchID);
+			
+			//printf("Current port and address: %d %s\n",port, address);
+			
 			addNewSwitch(rq.switchID, address, port, response, responseSize);
+			
 			response[responseSize-1] = EOF;
+			logRegResponse(rq.switchID);
+			
 			break;
 			
 		case 'T': ;//TopologyUpdate
-			//activeness is set to 'a', update lastAccessTime, update reachableMatrix
+			
 			//read packet
 			int senderSw, deadNs, numOfLiveNeighbs;
 			int liveNeighbs[totalSwitchCount];
@@ -259,27 +267,41 @@ void processMessageAndResponse(char msg[], char *address, int port, char respons
 			
 			updateActiveness(senderSw, 'a');
 			updateLastAccessTime(senderSw);
+			
 			//update activeness neighbours
 			updateActiveNeighbs(liveNeighbs, numOfLiveNeighbs);
 			
 			updateDeadNeighbs(deadNeighbs, deadNs);
 			
-			
-			
 			int anyChange = setLinks();
 			
-			if ((anyChange)&&(enableRouteUpdate)){
-				//printf("MUST SEND ROUTE UPDATE\n");
-				strncpy(response, "MUST SEND ROUTE UPDATE\n", 23);
-				int yy[] = {1,3,2,3,5};
-				int xx[] = {1,2,3,4,5};
-				createRouteUpdate(response, totalSwitchCount, xx, yy);
+			logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
+			
+			if ((anyChange)||(enableRouteUpdate)){
+				printf("MUST SEND ROUTE UPDATE\n");
+				//strncpy(response, "MUST SEND ROUTE UPDATE\n", 23);
+				
+				int destinations[totalSwitchCount-1];
+				int nextHops[totalSwitchCount-1];
+			
+				
+				dijkstraWidestPath(bWForCal, totalSwitchCount, senderSw-1, destinations, nextHops);
+				
+				int i;
+				for (i=0;i<totalSwitchCount-1;i++){
+					destinations[i]++;
+					nextHops[i]++;
+				}
+				createRouteUpdate(response, totalSwitchCount-1, destinations, nextHops);
+				logRouteUpdate(senderSw, 1);
 				
 				enableRouteUpdate = 0;
 				
 			} else {
 				printf("NO UPDATE\n");
 				strncpy(response, "0\n", 2);
+				logRouteUpdate(senderSw, 0);
+				
 			}
 			
 			printf("This is a T msg\n");
@@ -375,40 +397,50 @@ int main() {
 	//initialize bw and delay matrices
 	bandWidth = (int **)malloc(totalSwitchCount*sizeof(int *));
 	delay = (int **)malloc(totalSwitchCount*sizeof(int *));
-	edges = (int **)malloc(totalSwitchCount*sizeof(int *));
+	bWForCal = (int **)malloc(totalSwitchCount*sizeof(int *));
 	neighbours = (int **)malloc(totalSwitchCount*sizeof(int *));
 	
 	for (i=0;i<totalSwitchCount;i++){
 		bandWidth[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 		delay[i]=(int *)malloc(totalSwitchCount*sizeof(int));
-		edges[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+		bWForCal[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 		neighbours[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 	}
 	
 	for (i=0;i<totalSwitchCount;i++){
 		for (j=0;j<totalSwitchCount;j++){
-			bandWidth[i][j]=0;
+			bandWidth[i][j]=INFINITE;
 			delay[i][j]=0;
-			edges[i][j]=-1;
+			bWForCal[i][j]=INFINITE;
 			neighbours[i][j]=0;
 		}
 	}
 	
-	readFile(CONFIG_FILE, bandWidth, delay, edges, totalSwitchCount);
+	readFile(CONFIG_FILE, bandWidth, delay, bWForCal, totalSwitchCount);
 	
 	if( pthread_create(&tid[0], NULL, timerThread, NULL) != 0 )
 	   printf("Failed to create thread\n");
 	   
 	int len, n; 
 
-	
+	int firstTime = 1;//parameter for the first route update
 	
 	while(1){
+		
+		if(firstTime){
+			if(currentSwitchCount!=totalSwitchCount){
+		
+			} else {
+				firstTime = 0;
 				
+				
+			}
+		}
+		
 		printf("EDGES:\n");
 		for (i=0;i<totalSwitchCount;i++){
 			for (j=0;j<totalSwitchCount;j++){
-					printf("%d ",edges[i][j]);
+					printf("%03d ",bWForCal[i][j]);
 			}
 			printf("\n");
 		}
@@ -422,9 +454,11 @@ int main() {
 
 
 		printf("Waiting for switch...\n");
+		
 		n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
 				MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
 				&len); 	
+		
 		buffer[n] = '\0'; 
 	
 		char tempAddr[INET_ADDRSTRLEN];
@@ -432,42 +466,118 @@ int main() {
 		
 		int tempPort = ntohs(cliaddr.sin_port);
 		
-		printf("IP address is: %s\n", tempAddr);
-		printf("port is: %d\n", tempPort);
+		printf("IP address: %s\n", tempAddr);
+		printf("Port: %d\n", tempPort);
 		
-		printf("Msg: %s\n",buffer);
+		printf("Message: %s\n",buffer);
 
 		int responseSize = 500;
 		char response[responseSize];
 		
 		processMessageAndResponse(buffer, tempAddr, tempPort, response, responseSize);
 		
-		char *responseD = "TTTT\n";
-		
 		response[responseSize-1] = EOF;
 		
-		printf("The response: %s\n",response);
+		printf("Response: %s\n",response);
 		
-		//sendto(sockfd, (const char *)responseD, strlen(responseD), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len); 
 		sendto(sockfd, (const char *)response, strlen(response), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len); 
 				
 		printf("Response message sent.\n");
 		
 		
 		for (i=0;i<totalSwitchCount;i++){
-			printf("----%d----%c---%s----%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
+			printf("----%05d----%c---%s----%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
 		}
 		
-		/*for (i=0;i<responseSize;i++){
-			response[i]=0;
-		}*/
+		//for (i=0;i<responseSize;i++){
+			//response[i]=0;
+		//}
 		memset(response, 0, responseSize);
 	}
 	pthread_join(tid[0],NULL);
 	return 0; 
 } 
 /*
- * 2 parallel processsses
- * 1. message handle
- * 2. timer
- * */
+int main() { 
+	totalSwitchCount=6;
+	int i,j;
+	
+	
+	activeness = (char *)malloc(sizeof(char)*totalSwitchCount);
+	addresses = (char **)malloc(sizeof(char*)*totalSwitchCount);
+	delay = (int **)malloc(totalSwitchCount*sizeof(int *));
+	
+	
+	memset(activeness, 'n', totalSwitchCount * sizeof(char));
+	
+	for (i=0;i<totalSwitchCount;i++){
+		addresses[i] = (char *)malloc(sizeof(char)*30);
+		memset(addresses[i], '\0', 30 * sizeof(char));
+	}
+	//initialize bw and delay matrices
+	bandWidth = (int **)malloc(totalSwitchCount*sizeof(int *));
+	bWForCal = (int **)malloc(totalSwitchCount*sizeof(int *));
+	neighbours = (int **)malloc(totalSwitchCount*sizeof(int *));
+	
+	for (i=0;i<totalSwitchCount;i++){
+		bandWidth[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+		bWForCal[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+		neighbours[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+		delay[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+	}
+	for (i=0;i<totalSwitchCount;i++){
+		for (j=0;j<totalSwitchCount;j++){
+			bandWidth[i][j]=INFINITE;
+			bWForCal[i][j]=INFINITE;
+			delay[i][j]=0;
+			neighbours[i][j]=0;
+			
+		}
+	}
+	readFile(CONFIG_FILE, bandWidth, delay, bWForCal, totalSwitchCount);
+	
+		
+		
+		activeness[0]='a';
+		activeness[1]='a';
+		activeness[2]='a';
+		activeness[3]='a';
+		activeness[4]='a';
+		activeness[5]='a';
+	
+		int c = setLinks();
+		
+		printf("EDGES (%d):\n",c);
+		for (i=0;i<totalSwitchCount;i++){
+			for (j=0;j<totalSwitchCount;j++){
+					printf("%03d ",bWForCal[i][j]);
+			}
+			printf("\n");
+		}
+		activeness[3]='n';
+		
+		c = setLinks();
+		
+		printf("EDGES (%d):\n",c);
+		for (i=0;i<totalSwitchCount;i++){
+			for (j=0;j<totalSwitchCount;j++){
+					printf("%03d ",bWForCal[i][j]);
+			}
+			printf("\n");
+		}
+		
+		activeness[3]='a';
+		activeness[4]='n';
+		
+		c = setLinks();
+		
+		printf("EDGES (%d):\n",c);
+		for (i=0;i<totalSwitchCount;i++){
+			for (j=0;j<totalSwitchCount;j++){
+					printf("%03d ",bWForCal[i][j]);
+			}
+			printf("\n");
+		}
+		
+	return 0;
+}*/

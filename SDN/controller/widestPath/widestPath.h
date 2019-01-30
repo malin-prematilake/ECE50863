@@ -8,9 +8,10 @@
 
 #define IN 99
 #define N 7
+#define INFINITE 0
 
 int readNumOfSwitches(char *fileName);
 void readFile(const char* file_name, int **bandWidth, int **delay, int **edges, int numOfSwitches);
-int dijsktra(int cost[][N],int source,int target);
+void dijkstraWidestPath(int **G,int n,int startnode, int dest[], int hops[]);
 
 #endif

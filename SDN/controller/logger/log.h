@@ -12,4 +12,9 @@ void logRegRequest(int switchID);
 
 void logRegResponse(int switchID);
 
+
+void logTopoUpdate(int switchID, int change, char *activity, int sizee);
+void logRouteUpdate(int switchID, int yes);
+	
+
 #endif

@@ -1,6 +1,10 @@
 /* Dijkstra's Algorithm in C */
 #include "widestPath.h"
 
+//#define INFINITE 0
+#define MAX 6	//Number of vertices
+
+
 int readNumOfSwitches(char *fileName){
 	
 	FILE *fptr;
@@ -25,7 +29,7 @@ int readNumOfSwitches(char *fileName){
 	return (int)atoi(ch);
 }
 
-void readFile(const char* file_name, int **bandWidth, int **delay, int **edges, int numOfSwitches){
+void readFile(const char* file_name, int **bandWidth, int **delay, int **bw2, int numOfSwitches){
 	
 	FILE* file = fopen (file_name, "r");
 	int i = 0;
@@ -41,15 +45,13 @@ void readFile(const char* file_name, int **bandWidth, int **delay, int **edges, 
 		fscanf (file, "%d", &dly);
 
 		bandWidth[row-1][col-1] = bw;
+		bw2[row-1][col-1] = bw;
 		delay[row-1][col-1] = dly;
 
 		bandWidth[col-1][row-1] = bw;
+		bw2[col-1][row-1] = bw;
 		delay[col-1][row-1] = dly;
 	  
-		if(bw!=0){
-			edges[row-1][col-1] = 1;
-			edges[col-1][row-1] = 1;
-		}
 	}
 	
 	fclose (file);        
@@ -69,123 +71,123 @@ char *strrev(char *str)
       }
       return str;
 }
+ 
+void dijkstraWidestPath(int **G,int n,int startnode, int dest[], int hops[]){
+ 
+	int cost[n][n],bw[n],pred[n];
+	int visited[n],count,maxBw,nextnode,i,j;
+	
+	//pred[] stores the predecessor of each node
+	//count gives the number of nodes seen so far
+	//create the cost matrix
+	for(i=0;i<n;i++)
+		for(j=0;j<n;j++)
+			if(G[i][j]==0)
+				cost[i][j]=INFINITE;
+			else
 
-int dijsktra(int cost[][N],int source,int target){
-    int dist[N],prev[N],selected[N]={0},i,m,min,start,d,j;
-    char path[N];
-    
-    for(i=1;i< N;i++)
-    {
-        dist[i] = IN;
-        prev[i] = -1;
-    }
-    start = source;
-    selected[start]=1;
-    dist[start] = 0;
-    while(selected[target] ==0)
-    {
-        min = IN;
-        m = 0;
-        for(i=1;i< N;i++)
-        {
-            d = dist[start] +cost[start][i];
-            if(d< dist[i]&&selected[i]==0)
-            {
-                dist[i] = d;
-                prev[i] = start;
-            }
-            if(min>dist[i] && selected[i]==0)
-            {
-                min = dist[i];
-                m = i;
-            }
-        }
-        start = m;
-        selected[start] = 1;
-    }
-    start = target;
-    j = 0;
-    while(start != -1)
-    {
-        path[j++] = start+65;
-        start = prev[start];
-    }
-    path[j]='\0';
-    strrev(path);
-    printf("%s", path);
-    return dist[target];
+				cost[i][j]=G[i][j];
+	
+	//initialize pred[],distance[] and visited[]
+	for(i=0;i<n;i++)
+	{
+		bw[i]=cost[startnode][i];
+		pred[i]=startnode;
+		visited[i]=0;
+	}
+	
+	bw[startnode]=0;
+	visited[startnode]=1;
+	count=1;
+	
+	while(count<n-1)
+	{
+		maxBw=INFINITE;
+		
+		//nextnode gives the node at maximum bandwidth
+		for(i=0;i<n;i++)
+			if(bw[i]>maxBw&&!visited[i])
+			{
+				maxBw=bw[i];
+				nextnode=i;
+			}
+			
+			//check if a better path exists through nextnode			
+			visited[nextnode]=1;
+			for(i=0;i<n;i++)
+				if(!visited[i])
+					if(((maxBw<cost[nextnode][i])?maxBw:cost[nextnode][i])>bw[i])
+					{
+						bw[i]=((maxBw<cost[nextnode][i])?maxBw:cost[nextnode][i]);
+						pred[i]=nextnode;
+					}
+		count++;
+	}
+
+	
+	int prev, hp=0;
+	//print the path and distance of each node
+	for(i=0;i<n;i++){
+		if(i!=startnode){
+			
+			dest[hp] = i;
+			j=i;
+			do
+			{
+				prev = j;
+				j=pred[j];
+				//printf("<-%d",j);
+			}while(j!=startnode);
+			//printf("\nStart node: %d\n",prev);
+			hops[hp] = prev;
+			hp++;
+		}
+	}
 }
 
 /*
-int main(){
-    int cost[N][N],i,j,w,ch,co;
-    int source, target,x,y;
-
-    printf("\t The Shortest Path Algorithm ( DIJKSTRA'S ALGORITHM in C \n\n");
-
-    for(i=1;i< N;i++)
-    for(j=1;j< N;j++)
-    cost[i][j] = IN;
-    for(x=1;x< N;x++)
-    {
-        for(y=x+1;y< N;y++)
-        {
-            printf("Enter the weight of the path between nodes %d and %d: ",x,y);
-            scanf("%d",&w);
-            cost [x][y] = cost[y][x] = w;
-        }
-        printf("\n");
-    }
-    printf("\nEnter the source:");
-    scanf("%d", &source);
-    printf("\nEnter the target");
-    scanf("%d", &target);
-    co = dijsktra(cost,source,target);
-    printf("\nThe Shortest Path: %d",co);
-}
-int main(){
-
-	char *fileName = "../config.txt";
+int main()
+{
+	int i,j,n,u;
 	
-	int numOfSw = readNumOfSwitches(fileName);
+	n=MAX;
 	
-	int **bandWidth = (int **)malloc(numOfSw*sizeof(int *));
-	int **delay = (int **)malloc(numOfSw*sizeof(int *));
+	int hops[MAX-1];
+	int dest[MAX-1];
 	
-	int i,j;
-	
-	for (i=0;i<numOfSw;i++){
-		bandWidth[i]=(int *)malloc(numOfSw*sizeof(int));
-		delay[i]=(int *)malloc(numOfSw*sizeof(int));
-	}
+	int G[MAX][MAX] = {{0, 100, 0, 200, 0, 80}, 
+                       {100, 0, 50, 0, 180, 0}, 
+                        {0, 50, 0, 50, 0, 150}, 
+                        {200, 0, 50, 0, 100, 0}, 
+                        {0, 180, 0, 100, 0, 0}, 
+                        {80, 0, 150, 0, 0, 0} 
+                    };
 	
 	
-	for (i=0;i<numOfSw;i++){
-		for (j=0;j<numOfSw;j++){
-			bandWidth[i][j]=0;
-			delay[i][j]=0;
-		}
-	}
+	int **GX;
 	
-	printf("Number of switches: %d\n", numOfSw);
+	GX = (int **)malloc(sizeof(int *)*MAX);
 	
-	//readFile(fileName, (int **)bandWidth, (int **)delay, numOfSw);
-	read_ints(fileName, (int **)bandWidth, (int **)delay, numOfSw);
+	for(i=0;i<MAX;i++)
+		GX[i] = (int *)malloc(sizeof(int)*MAX);
+		
+	for(i=0;i<MAX;i++)
+		for(j=0;j<MAX;j++)
+			GX[i][j] = G[i][j];
+	
+	u = 1;//startnode-1
+	dijkstraWidestPath(GX,n,u, dest, hops);
 	
 	
-	for (i=0;i<numOfSw;i++){
-		for (j=0;j<numOfSw;j++){
-			printf("%d ",bandWidth[i][j]);
-		}
-		printf("\n");
-	}
+	for(i=0;i<MAX-1;i++)
+		printf("Next hops: %d, %d\n",dest[i],hops[i]);
+		
+	for(i=0;i<MAX;i++)
+		free(GX[i]);
 	
-	for (i=0;i<numOfSw;i++){
-		for (j=0;j<numOfSw;j++){
-			printf("%d ",delay[i][j]);
-		}
-		printf("\n");
-	}
+	free(GX);
+		
 	return 0;
 }
+
 */
