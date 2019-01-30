@@ -4,7 +4,7 @@
 This is the repository for projects of ECE50863 Spring 2019
 
 Project 1: SDN
-	```
+
 	*Compile controller:* make
 	
 	*Run controller:* make run 
@@ -12,5 +12,4 @@ Project 1: SDN
 	*Clean executables:* make clean 
 	
 	*Clean log files:* make cleanLog 
-	```
 	
