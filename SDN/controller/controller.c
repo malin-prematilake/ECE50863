@@ -237,7 +237,7 @@ void updateDeadNeighbs(int deadNs[], int number){
 	return;
 }
 
-void processMessageAndResponse(char msg[], char *address, int port, char response[], int responseSize){
+int processMessageAndResponse(char msg[], char *address, int port, char response[], int responseSize){
 
 	char type = msg[0];
 	registerReq rq;
@@ -277,37 +277,44 @@ void processMessageAndResponse(char msg[], char *address, int port, char respons
 			
 			logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
 			
-			if ((anyChange)||(enableRouteUpdate)){
-				printf("MUST SEND ROUTE UPDATE\n");
-				//strncpy(response, "MUST SEND ROUTE UPDATE\n", 23);
+			if (totalSwitchCount==currentSwitchCount){
+				if ((anyChange)||(enableRouteUpdate)){
+					printf("MUST SEND ROUTE UPDATE\n");
+					//strncpy(response, "MUST SEND ROUTE UPDATE\n", 23);
+					
+					int destinations[totalSwitchCount-1];
+					int nextHops[totalSwitchCount-1];
 				
-				int destinations[totalSwitchCount-1];
-				int nextHops[totalSwitchCount-1];
-			
-				
-				dijkstraWidestPath(bWForCal, totalSwitchCount, senderSw-1, destinations, nextHops);
-				
-				int i;
-				for (i=0;i<totalSwitchCount-1;i++){
-					destinations[i]++;
-					nextHops[i]++;
+					printf("WW\n");
+						
+					dijkstraWidestPath(bWForCal, totalSwitchCount, senderSw-1, destinations, nextHops);
+					printf("AA\n");
+					
+					int i;
+					for (i=0;i<totalSwitchCount-1;i++){
+						destinations[i]++;
+						nextHops[i]++;
+					}
+					printf("BB\n");
+					
+					createRouteUpdate(response, totalSwitchCount-1, destinations, nextHops);
+					logRouteUpdate(senderSw, 1);
+					printf("CC\n");
+					
+					enableRouteUpdate = 0;
+					
+				} else {
+					printf("NO UPDATE\n");
+					strncpy(response, "0\n", 2);
+					logRouteUpdate(senderSw, 0);
+					return 1;
+					
 				}
-				createRouteUpdate(response, totalSwitchCount-1, destinations, nextHops);
-				logRouteUpdate(senderSw, 1);
-				
-				enableRouteUpdate = 0;
-				
-			} else {
-				printf("NO UPDATE\n");
-				strncpy(response, "0\n", 2);
-				logRouteUpdate(senderSw, 0);
-				
 			}
-			
 			printf("This is a T msg\n");
 			break;	
 	}
-	return;
+	return 0;
 }
 
 //this will keep the time and set the activeness[i] to 'n' if switch does not respond
@@ -474,14 +481,14 @@ int main() {
 		int responseSize = 500;
 		char response[responseSize];
 		
-		processMessageAndResponse(buffer, tempAddr, tempPort, response, responseSize);
+		int yy = processMessageAndResponse(buffer, tempAddr, tempPort, response, responseSize);
 		
 		response[responseSize-1] = EOF;
 		
-		printf("Response: %s\n",response);
-		
-		sendto(sockfd, (const char *)response, strlen(response), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len); 
-				
+		if(yy!=1){
+			printf("Response: %s\n",response);
+			sendto(sockfd, (const char *)response, strlen(response), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len); 
+		}
 		printf("Response message sent.\n");
 		
 		

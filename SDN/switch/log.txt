@@ -1,0 +1,104 @@
+Switch 1: Sent REGISTER_REQUEST. Message = R1
+Switch 1: Sent REGISTER_REQUEST. Message = R1
+Switch 1: Sent REGISTER_REQUEST. Message = R1
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R2
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,52337*00003,n*00005,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,n*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,a,x«ëF,-1061986096*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,59654*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,43660*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,45760*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,53387*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,40784*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,35400*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,40291*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,52277*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,34627*00003,n*00005,n*
+Switch 1: Neighbour 0 is now reachable. Moving NA->A
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,48590*00003,n*00005,n*
+Switch 1: Neighbour 0 is now reachable. Moving NA->A
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,47217*00003,n*00005,n*
+Switch 1: Neighbour 0 is now reachable. Moving NA->A
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,n*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,a,x!oQ,1879184224*00004,n*00006,n*
+Switch 1: Neighbour ID 2 is Unreachable. Moving A->NA
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,n*00003,n*00005,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,a,xÒ!,-1712906544*00004,n*00006,n*
+Switch 1: Neighbour ID 2 is Unreachable. Moving A->NA
+Switch 3: Sent REGISTER_REQUEST. Message = R00003
+Switch 3: Received REGISTER_RESPONSE. Message = S0000300002,a,127.0.0.1,39041*00004,n*00006,n*
+Switch 2: Neighbour 0 is now reachable. Moving NA->A
+Switch 3: Sent REGISTER_REQUEST. Message = R00003
+Switch 3: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 3: Sent REGISTER_REQUEST. Message = R00003
+Switch 3: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 1: Sent REGISTER_REQUEST. Message = R00001
+Switch 1: Received REGISTER_RESPONSE. Message = S0000300002,n*00004,n*00006,n*
+Switch 2: Sent REGISTER_REQUEST. Message = R00002
+Switch 2: Received REGISTER_RESPONSE. Message = S0000300001,a,127.0.0.1,36232*00003,a,xlxþ~,32767*00005,n*
+Switch 1: Neighbour 0 is now reachable. Moving NA->A
+Switch 4: Sent REGISTER_REQUEST. Message = R00004
+Switch 4: Received REGISTER_RESPONSE. Message = S0000300001,a,xlxþ~,-2062478816*00003,a,127.0.0.1,43647*00005,n*
