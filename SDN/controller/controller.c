@@ -291,8 +291,8 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 					
 				} else {
 					printf("NO UPDATE\n");
-					strncpy(response, "0\n", 2);
-					logRouteUpdate(senderSw, 0);
+					//strncpy(response, "0\n", 2);
+					//logRouteUpdate(senderSw, 0);
 					return 1;
 					
 				}
