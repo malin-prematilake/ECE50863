@@ -262,7 +262,7 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 			int anyChange = setLinks();
 			
 			logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
-			
+			//printf("Current switch count: %d/%d\n",currentSwitchCount,totalSwitchCount);
 			if (totalSwitchCount==currentSwitchCount){
 				if ((anyChange)||(enableRouteUpdate)){
 					printf("MUST SEND ROUTE UPDATE\n");
@@ -294,9 +294,10 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 					//strncpy(response, "0\n", 2);
 					//logRouteUpdate(senderSw, 0);
 					return 1;
-					
 				}
 			}
+			else
+				return 1;
 			//printf("This is a T msg\n");
 			break;	
 	}
@@ -470,7 +471,7 @@ int main() {
 		char response[responseSize];
 		
 		int yy = processMessageAndResponse(buffer, tempAddr, tempPort, response, responseSize);
-		
+		//printf("THIS IS YY: %d\n",yy);
 		response[responseSize-1] = EOF;
 		
 		if(yy!=1){
