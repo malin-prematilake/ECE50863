@@ -15,7 +15,7 @@
 
 FILE *f;
 int logEntry;
-char fileName[50];
+char fileName[40];
 	
 char *getTime(){
 	time_t rawtime;
@@ -33,9 +33,9 @@ unsigned long getUnixTime(){
 
 void initializeLog(){
 	
-	char *name = "controller";
+	char *name = "../ControllerLog.txt";
 	
-	snprintf(fileName, 40, "%s_%lu", name, getUnixTime());
+	snprintf(fileName, 40, "%s", name);
     	
 	f = fopen(fileName, "w");
 	

@@ -89,14 +89,15 @@ void stringForAllSwitch(char msg[], int msgSize, int numOfNs, int ids[], int por
 
 	int i;
 	
-	char msgIdentifier[] = {'S'};
+	//char msgIdentifier[] = {'S'};
 	
-	char nNumberArr[5];
+	//char nNumberArr[5];
+	printf("*****RERER\n");
+	//intToStr(numOfNs, nNumberArr, 5);
 	
-	intToStr(numOfNs, nNumberArr, 5);
-	
-	strcpy(msg, msgIdentifier);
+	//strcpy(msg, msgIdentifier);
 	//strcat(msg, nNumberArr);
+	snprintf(msg, msgSize, "S%05d", numOfNs);
 	
 	for(i=0;i<numOfNs;i++){
 		char msgT[30];

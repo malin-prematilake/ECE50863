@@ -6,7 +6,7 @@ MSG_HANDLE = messageHandle/messageHandle.c
 WIDEST_PATH = widestPath/widestPath.c
 PTHREAD = lpthread
 MATH_LIB = lm
-LOG_FILES = controller_*
+LOG_FILES = ../ControllerLog.txt
 
 build: 
 	${GCC} -o ${OUTFILE} ${SOURCE} ${MSG_HANDLE} ${WIDEST_PATH} ${LOG_SOURCE} -${PTHREAD}
