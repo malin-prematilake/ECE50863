@@ -122,7 +122,7 @@ void createRouteUpdate(char *msg, int sWs, int destSwId[], int nxtHops[]){//sws 
 	
 	int j = snprintf(prefix, 8, "U%05d,", sWs);
 	
-	printf("Th: %s\n",prefix);
+	//printf("Th: %s\n",prefix);
 	
 	//msg should be long enough
 	strcpy(msg, prefix);
@@ -177,14 +177,14 @@ void readTopoUpdate(char *msg, int activeNghbrs[], int deActiveNghbrs[], int *se
 		ptr = strtok(NULL, delim);
 	}
 	
-	for(i=0;i<numberActive;i++)
+	/*for(i=0;i<numberActive;i++)
 		printf("%d ",activeNghbrs[i]);
 	
 	printf("\n");
 	
 	for(i=0;i<numberDeactive;i++)
 		printf("%d ",deActiveNghbrs[i]);
-	printf("\n");
+	printf("\n");*/
 	
 	free(rest);
 

@@ -8,7 +8,6 @@
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 #include <pthread.h>
-
 #include "messageHandle/messageHandle.h"
 #include "logger/log.h"
 #include "widestPath/widestPath.h"
@@ -68,7 +67,6 @@ void updateLastAccessTime(int id){
 	return;
 }
 
-
 //get the neighbours
 int getNeighbours(int id, int *nghbs){
 	
@@ -84,18 +82,6 @@ int getNeighbours(int id, int *nghbs){
 	}
 	return nn;
 }
-/*
-void setEdges(int swId, int nghbrs[], int numOfNs, int val){
-	
-	int i;
-	for(i=0;i<numOfNs;i++){
-		if(nghbrs[i]!=0)
-			edges[swId-1][nghbrs[i]-1] = val;
-			edges[nghbrs[i]-1][swId-1] = val;
-	}
-	
-	return;
-}*/
 
 int setLinks(){
 	
@@ -191,12 +177,12 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	
 	printf("\n");
 	
-	
+	/*
 	for(i=0;i<numOfNs;i++){
 		printf("Nghbr stuff: %d %c %d\n",nghbrs[i],myActiveness[i],myPorts[i]);
-	}
+	}*/
 	//get the details of each neighbour
-	createRegResponse(id, response, resSize, nghbrs, 3, myAddresses, myPorts, myActiveness);
+	createRegResponse(id, response, resSize, nghbrs, numOfNs, myAddresses, myPorts, myActiveness);
 	
 	for (i=0;i<numOfNs;i++)
 		free(myAddresses[i]);
@@ -285,21 +271,21 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 					int destinations[totalSwitchCount-1];
 					int nextHops[totalSwitchCount-1];
 				
-					printf("WW\n");
+					//printf("WW\n");
 						
 					dijkstraWidestPath(bWForCal, totalSwitchCount, senderSw-1, destinations, nextHops);
-					printf("AA\n");
+					//printf("AA\n");
 					
 					int i;
 					for (i=0;i<totalSwitchCount-1;i++){
 						destinations[i]++;
 						nextHops[i]++;
 					}
-					printf("BB\n");
+					//printf("BB\n");
 					
 					createRouteUpdate(response, totalSwitchCount-1, destinations, nextHops);
 					logRouteUpdate(senderSw, 1);
-					printf("CC\n");
+					//printf("CC\n");
 					
 					enableRouteUpdate = 0;
 					
@@ -371,7 +357,7 @@ int main() {
 	
 	// Bind the socket with the server address 
 	if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) { 
-		perror("bind failed"); 
+		perror("Bind failed\n"); 
 		exit(EXIT_FAILURE); 
 	} 
 	
@@ -383,7 +369,7 @@ int main() {
 	
 	//read the config file
 	totalSwitchCount = readNumOfSwitches(CONFIG_FILE);
-	printf("NUMBER OF SW: %d\n",totalSwitchCount);
+	printf("Number of switches: %d\n",totalSwitchCount);
 
 	int i,j;
 	
@@ -425,26 +411,28 @@ int main() {
 	
 	readFile(CONFIG_FILE, bandWidth, delay, bWForCal, totalSwitchCount);
 	
-	if( pthread_create(&tid[0], NULL, timerThread, NULL) != 0 )
-	   printf("Failed to create thread\n");
-	   
+	if( pthread_create(&tid[0], NULL, timerThread, NULL) != 0 ){
+	   printf("Failed to create timer thread\n");
+	   exit(1);
+	}
+	
 	int len, n; 
 
 	int firstTime = 1;//parameter for the first route update
 	
 	while(1){
 		
+		printf("********New Session********\n");
+		
 		if(firstTime){
 			if(currentSwitchCount!=totalSwitchCount){
 		
 			} else {
-				firstTime = 0;
-				
-				
+				firstTime = 0;				
 			}
 		}
 		
-		printf("EDGES:\n");
+		/*printf("EDGES:\n");
 		for (i=0;i<totalSwitchCount;i++){
 			for (j=0;j<totalSwitchCount;j++){
 					printf("%03d ",bWForCal[i][j]);
@@ -457,7 +445,7 @@ int main() {
 					printf("%d ",neighbours[i][j]);
 			}
 			printf("\n");
-		}
+		}*/
 
 
 		printf("Waiting for switch...\n");
@@ -473,9 +461,9 @@ int main() {
 		
 		int tempPort = ntohs(cliaddr.sin_port);
 		
-		printf("IP address: %s\n", tempAddr);
-		printf("Port: %d\n", tempPort);
-		
+		printf("Message info:\n");
+		printf("Sender IP address: %s\n", tempAddr);
+		printf("Sender Port: %d\n", tempPort);
 		printf("Message: %s\n",buffer);
 
 		int responseSize = 500;
@@ -487,19 +475,21 @@ int main() {
 		
 		if(yy!=1){
 			printf("Response: %s\n",response);
-			sendto(sockfd, (const char *)response, strlen(response), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len); 
+			sendto(sockfd, (const char *)response, strlen(response), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
+			printf("Response message sent\n"); 
 		}
-		printf("Response message sent.\n");
 		
-		
+		printf("Current switch information:\n");
+		printf("Ports|A|IP addr|Last available time\n");
 		for (i=0;i<totalSwitchCount;i++){
-			printf("----%05d----%c---%s----%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
+			printf("%05d|%c|%s|%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
 		}
 		
 		//for (i=0;i<responseSize;i++){
 			//response[i]=0;
 		//}
 		memset(response, 0, responseSize);
+		
 	}
 	pthread_join(tid[0],NULL);
 	return 0; 
