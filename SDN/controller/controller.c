@@ -285,7 +285,7 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 					}
 					//printf("BB\n");
 					
-					createRouteUpdate(response, totalSwitchCount-1, destinations, nextHops);
+					createRouteUpdate(response, totalSwitchCount-1, destinations, nextHops, activeness);
 					logRouteUpdate(senderSw, 1);
 					//printf("CC\n");
 					

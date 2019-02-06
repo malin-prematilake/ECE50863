@@ -120,26 +120,32 @@ void createRegResponse(int switchId, char msg[], int msgSize, int ids[], int num
 }
 
 //U#TotalSwitches,sw1:nxtHop,sw2:nxtHop,...
-void createRouteUpdate(char *msg, int sWs, int destSwId[], int nxtHops[]){//sws is the total sumber of switches
+void createRouteUpdate(char *msg, int sWs, int destSwId[], int nxtHops[], char activeness[]){//sws is the total sumber of switches
 //void createRouteUpdate(int sWs){
 
 	char prefix[7];
+	char *example = "12345:12345,";
+	int sizzz = strlen(example);
 	
 	int j = snprintf(prefix, 8, "U%05d,", sWs);
 	
-	//printf("Th: %s\n",prefix);
-	
 	//msg should be long enough
 	strcpy(msg, prefix);
-	
 	int i;
 	
 	for(i=0;i<sWs;i++){
-		char str[12];
-		snprintf(str, 13, "%05d:%05d,", destSwId[i], nxtHops[i]);
+		char str[15];
+		if(activeness[destSwId[i]-1]=='a')
+			snprintf(str, sizzz+1, "%05d:%05d,", destSwId[i], nxtHops[i]);
+		else if(activeness[destSwId[i]-1]=='n')
+			snprintf(str, sizzz+1, "%05d:%05d,", destSwId[i], 0);
+		
 		strcat(msg, str);
+		
+		//printf("****NOW MESSAGE: %s\n",msg);
 	}
-	
+	strcat(msg, "**");
+	strcat(msg, "\0");
 	return;
 }
 

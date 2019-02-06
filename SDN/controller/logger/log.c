@@ -65,7 +65,7 @@ void logRegRequest(int switchID){
 		exit(1);
 	}
 	
-	fprintf(f, "%d)%s	REGISTER_REQUEST:SwitchID-%05d\n", logEntry, getTime(), switchID);
+	fprintf(f, "%s	REGISTER_REQUEST:SwitchID-%05d\n",  getTime(), switchID);
 	
 	fclose(f);
 
@@ -84,7 +84,7 @@ void logRegResponse(int switchID){
 		exit(1);
 	}
 	
-	fprintf(f, "%d)%s	REGISTER_RESPONSE:SwitchID-%05d\n", logEntry, getTime(), switchID);
+	fprintf(f, "%s	REGISTER_RESPONSE:SwitchID-%05d\n",  getTime(), switchID);
 	
 	fclose(f);
 
@@ -98,7 +98,7 @@ void logTopoUpdate(int switchID, int change, char *activity, int sizee){
 	f = fopen(fileName, "a");
 	
 	if(change){
-		fprintf(f, "%d)%s	TOPOLOGY_UPDATE:SwitchID-%05d: ", logEntry, getTime(), switchID);
+		fprintf(f, "%s	TOPOLOGY_UPDATE:SwitchID-%05d: ",  getTime(), switchID);
 		int i;
 		
 		for(i=0;i<sizee;i++)
@@ -109,7 +109,7 @@ void logTopoUpdate(int switchID, int change, char *activity, int sizee){
 	}
 	
 	else
-		fprintf(f, "%d)%s	TOPOLOGY_UPDATE:SwitchID-%05d: No update\n", logEntry, getTime(), switchID);
+		fprintf(f, "%s	TOPOLOGY_UPDATE:SwitchID-%05d: No update\n",  getTime(), switchID);
 	
 	fclose(f);
 
@@ -124,9 +124,9 @@ void logRouteUpdate(int switchID, int yes){
 	f = fopen(fileName, "a");
 	
 	if(yes)
-		fprintf(f, "%d)%s	ROUTE_UPDATE:SwitchID-%05d\n", logEntry, getTime(), switchID);
+		fprintf(f, "%s	ROUTE_UPDATE:SwitchID-%05d\n", getTime(), switchID);
 	else
-		fprintf(f, "%d)%s	TOPOLOGY_UPDATE:SwitchID-%05d: No update\n", logEntry, getTime(), switchID);
+		fprintf(f, "%s	TOPOLOGY_UPDATE:SwitchID-%05d: No update\n",  getTime(), switchID);
 	
 	fclose(f);
 
