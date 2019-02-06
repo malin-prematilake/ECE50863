@@ -38,13 +38,14 @@ struct routingTable{
 struct neighbour neig[NEIGHBSIZE];
 struct routingTable rout[NEIGHBSIZE];
 int ID;	
+int failID;
 
 //Logging
 FILE *filePoint;
 char dataLog[50];
 
 void LogInfo(char* text){
-	filePoint = fopen("log.txt", "a");					
+	filePoint = fopen("../ControllerLog.txt", "a");					
 	fputs(text, filePoint);
 	fclose(filePoint);
 }
@@ -90,6 +91,7 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 				memset(temp, 0, strlen(temp));
 				strncpy(temp, &buffer[pos+=5+1],1);
 				neig[id].count = 0;
+				
 				if(temp[0]=='a'){
 					neig[id].f = "a";
 					printf("Switch %d: Flag = %s\n", ID, neig[id].f);
@@ -111,7 +113,6 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 						return 1;			
 					}
 					bcopy((char*)hp->h_addr_list[0], (char*)&neig[id].sa.sin_addr.s_addr, hp->h_length);
-
 					neig[id].sa.sin_family = AF_INET; 
 					memset(temp, 0, strlen(temp));
 					strcpy(temp, buffer);
@@ -121,6 +122,9 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 					neig[id].sa.sin_port = htons(neig[id].port);
 					printf("Switch %d: PORT= %s\n",ID, t);
 					pos+=(len+1);					
+				}
+				if(id==failID){
+					neig[id].f == "f";
 				}				
 			}
 			return neighbCount;
@@ -193,7 +197,9 @@ void KeepAliveAndTopologySender(int sockfd, int neighbCount, struct sockaddr_in 
 					if(nBytes<0){
 						printf("Switch %d: Error sending Keep Alive to ID %d\n", ID, i);
 					}
-					printf("Switch %d: Sent KEEP_ALIVE to ID %d\n", ID, i);					
+					else{
+						printf("Switch %d: Sent KEEP_ALIVE to ID %d\n", ID, i);	
+					}				
 				}
 			}
 			//Send TOPLOGY_UPDATE to the controller. The message includes a set of live neighbours of the switch
@@ -216,6 +222,7 @@ void KeepAliveAndTopologySender(int sockfd, int neighbCount, struct sockaddr_in 
 				sprintf(dataLog, "Switch %d: Neighbour ID %d is Unreachable. Moving A->NA\n", ID, i);
 				LogInfo(dataLog);
 			}
+			neig[i].count=0;
 		}
 		if(flag){
 			FormatTopologyupdate(buffer, neig);
@@ -248,6 +255,7 @@ void *Listener(void *input) {
 	struct sockaddr_in clientaddr;
 	int recvlen, id=0, nBytes=0, pos=0, countSW, i=0, len=0; char *temp;
 	while(1){
+		memset(buffer, 0, strlen(buffer));
 		printf("Switch %d: Listening\n", ID);
 		recvlen=recvfrom(((struct threadArg*)input)->sockfd, (char*)buffer, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &len);
 		printf("Message Received = %s\n", buffer);
@@ -341,6 +349,13 @@ int main(int argc, char **argv){
 	/******/printf("****The message: %s\n",regReqmessage);
 	host=argv[2]; //Receive IP of Controller
 	portC= atoi(argv[3]); //Receive Port of Controller
+
+	if(argc==6){
+		failID = atoi(argv[5]); //Receive failure neighbour of Switch
+		printf("Neighbour ID whose link has failed = %d\n", failID);
+		//To handle failure
+		neig[failID].f = "f";
+	}
 	
 	//Create socket
 	if((sockfd = socket(AF_INET, SOCK_DGRAM,0))<0){

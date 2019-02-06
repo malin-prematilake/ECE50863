@@ -16,7 +16,7 @@
 #define PORT	 		8080 
 #define MAXLINE 		1024 
 #define CONFIG_FILE 	"config.txt"
-#define SIZE_OF_IP		30
+#define SIZE_OF_IP		16
 
 //timer thread properties
 #define M				10
@@ -155,14 +155,16 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	for(i=0;i<numOfNs;i++){
 		myActiveness[i] = activeness[nghbrs[i]-1];
 		
-		if (activeness[nghbrs[i]]=='a'){
+		if (activeness[nghbrs[i]-1]=='a'){
 			myPorts[i] = ports[nghbrs[i]-1];
 			
 			//use strcpy
-			for(j=0;j<30;j++){
+			/*for(j=0;j<30;j++){
 				myAddresses[i][j] = addresses[nghbrs[i]][j];
 				
-			}
+			}*/
+			strncpy (myAddresses[i], addresses[nghbrs[i]-1], 30);
+			//printf("*****THESE: %s\n",myAddresses[i]);
 		}
 	}
 	
