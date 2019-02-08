@@ -1,0 +1,8 @@
+Issues
+
+1. Route update sometimes not received
+2. Number of entries in a route update
+3. Problem with updating
+4. Problem with with count (switch failure)
+5. Print the path and route table on controller side for each switch
+6. Put the message process into different thread
