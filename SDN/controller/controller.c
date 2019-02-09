@@ -168,7 +168,8 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 		}
 	}
 	
-	currentSwitchCount++;
+	if (port!=0)
+		currentSwitchCount++;
 	
 	if((!enableRouteUpdate)&&(totalSwitchCount==currentSwitchCount))
 			enableRouteUpdate = 1;
@@ -335,6 +336,16 @@ void * timerThread(){
 	
 }
 
+void populate_sockaddr(int port, char addr[], struct sockaddr_in *dst_in4, socklen_t *addrlen) {
+
+	int af = AF_INET;
+	*addrlen = sizeof(*dst_in4);
+	memset(dst_in4, 0, *addrlen);
+	dst_in4->sin_family = af;
+	dst_in4->sin_port = htons(port);
+	inet_pton(af, addr, &dst_in4->sin_addr);
+}
+
 int main() { 
 	
 	int sockfd; 
@@ -428,10 +439,51 @@ int main() {
 		printf("********New Session********\n");
 		
 		if(firstTime){
-			if(currentSwitchCount!=totalSwitchCount){
+			if(currentSwitchCount==totalSwitchCount){
 		
-			} else {
-				firstTime = 0;				
+			//} else {
+				firstTime = 0;
+				
+				int uif, sockTemp;
+				for(uif=0;uif<totalSwitchCount;uif++){
+					
+					int destinations[totalSwitchCount-1];
+					int nextHops[totalSwitchCount-1];
+				
+					//printf("WW\n");
+						
+					dijkstraWidestPath(bWForCal, totalSwitchCount, (uif+1)-1, destinations, nextHops);
+					//printf("AA\n");
+					
+					int i;
+					for (i=0;i<totalSwitchCount-1;i++){
+						destinations[i]++;
+						nextHops[i]++;
+					}
+					char responseFF[500];
+					
+					createRouteUpdate(responseFF, totalSwitchCount-1, destinations, nextHops, activeness);
+					logRouteUpdate((uif+1), 1);
+					
+					
+					struct sockaddr_in swAddr;
+					socklen_t addrlen;
+	 
+	
+					// Creating socket file descriptor 
+					if ( (sockTemp = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+						perror("socket creation failed"); 
+						exit(EXIT_FAILURE); 
+					} 
+					
+					populate_sockaddr(ports[uif], addresses[i], &swAddr, &addrlen);
+					sendto(sockTemp, (const char *)responseFF, strlen(responseFF), MSG_CONFIRM, (const struct sockaddr *)&swAddr, len);
+					
+					printf("SWITCH: %d -> %s\n",uif+1, responseFF);
+						
+				}	
+				enableRouteUpdate = 0;
+				close(sockTemp);
 			}
 		}
 		
@@ -484,6 +536,7 @@ int main() {
 		
 		printf("Current switch information:\n");
 		printf("Ports|A|IP addr|Last available time\n");
+		
 		for (i=0;i<totalSwitchCount;i++){
 			printf("%05d|%c|%s|%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
 		}
@@ -497,87 +550,3 @@ int main() {
 	pthread_join(tid[0],NULL);
 	return 0; 
 } 
-/*
-int main() { 
-	totalSwitchCount=6;
-	int i,j;
-	
-	
-	activeness = (char *)malloc(sizeof(char)*totalSwitchCount);
-	addresses = (char **)malloc(sizeof(char*)*totalSwitchCount);
-	delay = (int **)malloc(totalSwitchCount*sizeof(int *));
-	
-	
-	memset(activeness, 'n', totalSwitchCount * sizeof(char));
-	
-	for (i=0;i<totalSwitchCount;i++){
-		addresses[i] = (char *)malloc(sizeof(char)*30);
-		memset(addresses[i], '\0', 30 * sizeof(char));
-	}
-	//initialize bw and delay matrices
-	bandWidth = (int **)malloc(totalSwitchCount*sizeof(int *));
-	bWForCal = (int **)malloc(totalSwitchCount*sizeof(int *));
-	neighbours = (int **)malloc(totalSwitchCount*sizeof(int *));
-	
-	for (i=0;i<totalSwitchCount;i++){
-		bandWidth[i]=(int *)malloc(totalSwitchCount*sizeof(int));
-		bWForCal[i]=(int *)malloc(totalSwitchCount*sizeof(int));
-		neighbours[i]=(int *)malloc(totalSwitchCount*sizeof(int));
-		delay[i]=(int *)malloc(totalSwitchCount*sizeof(int));
-	}
-	for (i=0;i<totalSwitchCount;i++){
-		for (j=0;j<totalSwitchCount;j++){
-			bandWidth[i][j]=INFINITE;
-			bWForCal[i][j]=INFINITE;
-			delay[i][j]=0;
-			neighbours[i][j]=0;
-			
-		}
-	}
-	readFile(CONFIG_FILE, bandWidth, delay, bWForCal, totalSwitchCount);
-	
-		
-		
-		activeness[0]='a';
-		activeness[1]='a';
-		activeness[2]='a';
-		activeness[3]='a';
-		activeness[4]='a';
-		activeness[5]='a';
-	
-		int c = setLinks();
-		
-		printf("EDGES (%d):\n",c);
-		for (i=0;i<totalSwitchCount;i++){
-			for (j=0;j<totalSwitchCount;j++){
-					printf("%03d ",bWForCal[i][j]);
-			}
-			printf("\n");
-		}
-		activeness[3]='n';
-		
-		c = setLinks();
-		
-		printf("EDGES (%d):\n",c);
-		for (i=0;i<totalSwitchCount;i++){
-			for (j=0;j<totalSwitchCount;j++){
-					printf("%03d ",bWForCal[i][j]);
-			}
-			printf("\n");
-		}
-		
-		activeness[3]='a';
-		activeness[4]='n';
-		
-		c = setLinks();
-		
-		printf("EDGES (%d):\n",c);
-		for (i=0;i<totalSwitchCount;i++){
-			for (j=0;j<totalSwitchCount;j++){
-					printf("%03d ",bWForCal[i][j]);
-			}
-			printf("\n");
-		}
-		
-	return 0;
-}*/

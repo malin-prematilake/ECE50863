@@ -8,7 +8,7 @@
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 
-#define PORT	 54799
+#define PORT	 8080
 #define MAXLINE 1024 
 
 // Driver code 
@@ -48,6 +48,9 @@ int main(int argc, char *argv[]) {
 	n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
 				MSG_WAITALL, (struct sockaddr *) &servaddr, 
 				&len); 
+	
+	buffer[n] = '\0'; 
+	printf("2 nd Server response: %s\n", buffer); 
 	
 	close(sockfd); 
 	return 0; 
