@@ -127,22 +127,24 @@ void dijkstraWidestPath(int **G,int n,int startnode, int dest[], int hops[]){
 	
 	int prev, hp=0;
 	//print the path and distance of each node
+	printf("WIDEST PATHS FOR SWITCH %d\n",startnode+1);
+	
 	for(i=0;i<n;i++){
 		if(i!=startnode){
 			
 			dest[hp] = i;
 			j=i;
-			do
-			{
+			do {
 				prev = j;
 				j=pred[j];
-				//printf("<-%d",j);
-			}while(j!=startnode);
-			//printf("\nStart node: %d\n",prev);
+				printf("<-%d",j+1);
+			} while(j!=startnode);
+			printf("\nStart node: %d\n",prev+1);
 			hops[hp] = prev;
 			hp++;
 		}
 	}
+	printf("===============================\n");
 }
 
 /*

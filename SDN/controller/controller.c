@@ -58,12 +58,16 @@ unsigned long getControllerTime(){
 }
 
 void updateActiveness(int id, char state){
-	activeness[id-1] = state;
+	pthread_mutex_lock(&lock);
+		activeness[id-1] = state;
+	pthread_mutex_unlock(&lock);
 	return;
 }
 
 void updateLastAccessTime(int id){
-	lastAccessTimes[id-1] = getControllerTime();
+	pthread_mutex_lock(&lock);
+		lastAccessTimes[id-1] = getControllerTime();
+	pthread_mutex_unlock(&lock);
 	return;
 }
 
@@ -125,8 +129,11 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	
 	addresses[id-1] = address;
 	ports[id-1] = port;
-	activeness[id-1] = 'a';
-	lastAccessTimes[id-1] = getControllerTime();
+	
+	pthread_mutex_lock(&lock);
+		activeness[id-1] = 'a';
+		lastAccessTimes[id-1] = getControllerTime();
+	pthread_mutex_unlock(&lock);
 	
 	int tx = setLinks();//tx is useless
 	
@@ -153,9 +160,16 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	char myActiveness[numOfNs];
 	
 	for(i=0;i<numOfNs;i++){
-		myActiveness[i] = activeness[nghbrs[i]-1];
 		
-		if (activeness[nghbrs[i]-1]=='a'){
+		char temp;
+		pthread_mutex_lock(&lock);
+			temp = activeness[nghbrs[i]-1];
+		pthread_mutex_unlock(&lock);
+		
+		myActiveness[i] = temp;//activeness[nghbrs[i]-1];
+		
+		//if (activeness[nghbrs[i]-1]=='a'){
+		if (temp=='a'){
 			myPorts[i] = ports[nghbrs[i]-1];
 			
 			//use strcpy
@@ -164,7 +178,6 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 				
 			}*/
 			strncpy (myAddresses[i], addresses[nghbrs[i]-1], 30);
-			//printf("*****THESE: %s\n",myAddresses[i]);
 		}
 	}
 	
@@ -173,17 +186,19 @@ int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	
 	if((!enableRouteUpdate)&&(totalSwitchCount==currentSwitchCount))
 			enableRouteUpdate = 1;
-		
+	
+	/*	
 	printf("Neighbours of %d: ",id);
 	for(i=0;i<totalSwitchCount;i++)
 		printf("%d, ", nghbrs[i]);
 	
 	printf("\n");
-	
+	*/
 	/*
 	for(i=0;i<numOfNs;i++){
 		printf("Nghbr stuff: %d %c %d\n",nghbrs[i],myActiveness[i],myPorts[i]);
 	}*/
+	
 	//get the details of each neighbour
 	createRegResponse(id, response, resSize, nghbrs, numOfNs, myAddresses, myPorts, myActiveness);
 	
@@ -247,54 +262,56 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 			
 		case 'T': ;//TopologyUpdate
 			
-			//read packet
-			int senderSw, deadNs, numOfLiveNeighbs;
-			int liveNeighbs[totalSwitchCount];
-			int deadNeighbs[totalSwitchCount];
-			
-			readTopoUpdate(msg, liveNeighbs, deadNeighbs, &senderSw, &numOfLiveNeighbs, &deadNs);
-			
-			updateActiveness(senderSw, 'a');
-			updateLastAccessTime(senderSw);
-			
-			//update activeness neighbours
-			updateActiveNeighbs(liveNeighbs, numOfLiveNeighbs);
-			
-			updateDeadNeighbs(deadNeighbs, deadNs);
-			
-			int anyChange = setLinks();
-			
-			logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
-			//printf("Current switch count: %d/%d\n",currentSwitchCount,totalSwitchCount);
 			if (totalSwitchCount==currentSwitchCount){
+			
+				//read packet
+				int senderSw, deadNs, numOfLiveNeighbs;
+				int liveNeighbs[totalSwitchCount];
+				int deadNeighbs[totalSwitchCount];
+				
+				readTopoUpdate(msg, liveNeighbs, deadNeighbs, &senderSw, &numOfLiveNeighbs, &deadNs);
+				
+				updateActiveness(senderSw, 'a');
+				updateLastAccessTime(senderSw);
+				
+				//update activeness neighbours
+				updateActiveNeighbs(liveNeighbs, numOfLiveNeighbs);
+				
+				updateDeadNeighbs(deadNeighbs, deadNs);
+				
+				int anyChange = setLinks();
+				
+				logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
+				
 				if ((anyChange)||(enableRouteUpdate)){
 					printf("MUST SEND ROUTE UPDATE\n");
-					//strncpy(response, "MUST SEND ROUTE UPDATE\n", 23);
 					
 					int destinations[totalSwitchCount-1];
 					int nextHops[totalSwitchCount-1];
-				
-					//printf("WW\n");
 						
 					dijkstraWidestPath(bWForCal, totalSwitchCount, senderSw-1, destinations, nextHops);
-					//printf("AA\n");
 					
 					int i;
 					for (i=0;i<totalSwitchCount-1;i++){
 						destinations[i]++;
 						nextHops[i]++;
 					}
-					//printf("BB\n");
 					
 					createRouteUpdate(response, totalSwitchCount-1, destinations, nextHops, activeness);
+					
+					printf("Route update for switch %d\n",senderSw);
+					
+					for (i=0;i<totalSwitchCount-1;i++)
+						printf("%d -> %d\n",destinations[i], nextHops[i]);
+					
+					printf("--------------------------\n");
+					
 					logRouteUpdate(senderSw, 1);
-					//printf("CC\n");
 					
 					enableRouteUpdate = 0;
 					
 				} else {
 					printf("NO UPDATE\n");
-					//strncpy(response, "0\n", 2);
 					//logRouteUpdate(senderSw, 0);
 					return 1;
 				}
@@ -318,7 +335,7 @@ void * timerThread(){
 	while(1){
 		unsigned long nowTime = getControllerTime();
 		
-		printf("Checking switch access times\n");
+		printf("Checking activeness at interval: ");
 		for(i=0;i<totalSwitchCount;i++){
 			pthread_mutex_lock(&lock);
 				unsigned long temp1 = nowTime - lastAccessTimes[i];
@@ -326,8 +343,9 @@ void * timerThread(){
 				if(difference < temp1)
 					activeness[i]='n';
 			pthread_mutex_unlock(&lock);
+			printf("%c ",activeness[i]);
 		}
-		
+		printf("\n");
 		if(1==setLinks())
 			enableRouteUpdate=1;
 			
@@ -337,7 +355,6 @@ void * timerThread(){
 }
 
 void populate_sockaddr(int port, char addr[], struct sockaddr_in *dst_in4, socklen_t *addrlen) {
-
 	int af = AF_INET;
 	*addrlen = sizeof(*dst_in4);
 	memset(dst_in4, 0, *addrlen);
@@ -436,7 +453,7 @@ int main() {
 	
 	while(1){
 		
-		printf("********New Session********\n");
+		printf("****************New Session****************\n");
 		
 		if(firstTime){
 			if(currentSwitchCount==totalSwitchCount){
@@ -469,7 +486,6 @@ int main() {
 					struct sockaddr_in swAddr;
 					socklen_t addrlen;
 	 
-	
 					// Creating socket file descriptor 
 					if ( (sockTemp = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
 						perror("socket creation failed"); 
@@ -487,20 +503,20 @@ int main() {
 			}
 		}
 		
-		/*printf("EDGES:\n");
-		for (i=0;i<totalSwitchCount;i++){
-			for (j=0;j<totalSwitchCount;j++){
-					printf("%03d ",bWForCal[i][j]);
-			}
-			printf("\n");
-		}
-		printf("NEIGHBOURS:\n");
-		for (i=0;i<totalSwitchCount;i++){
-			for (j=0;j<totalSwitchCount;j++){
-					printf("%d ",neighbours[i][j]);
-			}
-			printf("\n");
-		}*/
+		//printf("EDGES:\n");
+		//for (i=0;i<totalSwitchCount;i++){
+			//for (j=0;j<totalSwitchCount;j++){
+			//		printf("%03d ",bWForCal[i][j]);
+			//}
+			//printf("\n");
+		//}
+		//printf("NEIGHBOURS:\n");
+		//for (i=0;i<totalSwitchCount;i++){
+			//for (j=0;j<totalSwitchCount;j++){
+				//	printf("%d ",neighbours[i][j]);
+			//}
+			//printf("\n");
+		//}
 
 
 		printf("Waiting for switch...\n");
@@ -516,10 +532,10 @@ int main() {
 		
 		int tempPort = ntohs(cliaddr.sin_port);
 		
-		printf("Message info:\n");
-		printf("Sender IP address: %s\n", tempAddr);
-		printf("Sender Port: %d\n", tempPort);
-		printf("Message: %s\n",buffer);
+		//printf("Message info:\n");
+		//printf("Sender IP address: %s\n", tempAddr);
+		//printf("Sender Port: %d\n", tempPort);
+		printf("Request: %s\n",buffer);
 
 		int responseSize = 500;
 		char response[responseSize];
@@ -531,11 +547,10 @@ int main() {
 		if(yy!=1){
 			printf("Response: %s\n",response);
 			sendto(sockfd, (const char *)response, strlen(response), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
-			printf("Response message sent\n"); 
+			//printf("Response message sent\n"); 
 		}
-		
-		printf("Current switch information:\n");
-		printf("Ports|A|IP addr|Last available time\n");
+		printf("================================================\n");
+		printf("Ports|A|IPaddress|Last available time\n");
 		
 		for (i=0;i<totalSwitchCount;i++){
 			printf("%05d|%c|%s|%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
@@ -550,3 +565,117 @@ int main() {
 	pthread_join(tid[0],NULL);
 	return 0; 
 } 
+/*
+
+int main(){
+	
+	char acc[] = {'n','a','n','a','a','n'};
+	int org[6][6] = {{0, 100, 0, 200, 0, 80},
+					   {100, 0, 50, 0, 180, 0},
+					   {0, 50, 0, 50, 0, 150},
+			           {200, 0, 50, 0, 100, 0},
+			           {0, 180, 0, 100, 0, 0},
+			           {80, 0, 150, 0, 0, 0}};
+			 
+	int cops[6][6]  = {{0, 0, 0, 0, 0, 0},
+					   {0, 0, 0, 0, 0, 0},
+					   {0, 0, 0, 0, 0, 0},
+			           {0, 0, 0, 0, 0, 0},
+			           {0, 0, 0, 0, 0, 0},
+			           {0, 0, 0, 0, 0, 0}};;
+	
+	int change = 0;
+	int prev;
+	
+	int i,j;
+	
+	for(i=0;i<6;i++){
+		for(j=0;j<6;j++){
+			prev = cops[i][j];
+			
+			//if(bandWidth[i][j]!=0){
+			if((acc[i]=='a')&&(acc[j]=='a')){
+				cops[i][j] = org[i][j];
+			} else{
+				cops[i][j] = INFINITE;
+			}
+			//}
+			if (prev!=cops[i][j]){
+				printf("(%d, %d)",i+1,j+1);
+				change=1;
+			}
+		}
+	}
+	printf("Change %d\n",change);
+
+	for(i=0;i<6;i++){
+		for(j=0;j<6;j++){
+			printf("%d ",cops[i][j]);
+		}
+		printf("\n");
+	}
+	change = 0;
+	
+	acc[0] = 'a';
+	acc[1] = 'n';
+	acc[2] = 'n';
+	acc[3] = 'n';
+	acc[4] = 'n';
+	acc[5] = 'a';
+	
+	for(i=0;i<6;i++){
+		for(j=0;j<6;j++){
+			prev = cops[i][j];
+			
+			//if(bandWidth[i][j]!=0){
+			if((acc[i]=='a')&&(acc[j]=='a')){
+				cops[i][j] = org[i][j];
+			} else {
+				cops[i][j] = INFINITE;
+			}
+			//}
+			if (prev!=cops[i][j]){
+				printf("(%d, %d)",i+1,j+1);
+				change=1;
+			}
+		}
+	}
+	printf("Change %d\n",change);
+
+	for(i=0;i<6;i++){
+		for(j=0;j<6;j++){
+			printf("%d ",cops[i][j]);
+		}
+		printf("\n");
+	}
+	
+	change = 0;
+	
+	for(i=0;i<6;i++){
+		for(j=0;j<6;j++){
+			prev = cops[i][j];
+			
+			//if(bandWidth[i][j]!=0){
+			if((acc[i]=='a')&&(acc[j]=='a')){
+				cops[i][j] = org[i][j];
+			} else {
+				cops[i][j] = INFINITE;
+			}
+			//}
+			if (prev!=cops[i][j]){
+				printf("(%d, %d)",i+1,j+1);
+				change=1;
+			}
+		}
+	}
+	printf("Change %d\n",change);
+
+	for(i=0;i<6;i++){
+		for(j=0;j<6;j++){
+			printf("%d ",cops[i][j]);
+		}
+		printf("\n");
+	}
+	return 0;
+}
+*/
