@@ -15,7 +15,7 @@
 #define BUFSIZE 1024
 #define NEIGHBSIZE 10
 #define K 10
-#define M 4
+#define M 5
 
 //Keep track of K seconds
 void delay(int seconds)
@@ -38,7 +38,9 @@ struct routingTable{
 struct neighbour neig[NEIGHBSIZE];
 struct routingTable rout[NEIGHBSIZE];
 int ID;	
-int failID;
+int failID=0;
+
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 //Logging
 FILE *filePoint;
@@ -60,8 +62,8 @@ void printRoutingTable(struct routingTable rout[NEIGHBSIZE], int countSW){
 		sprintf(dataLog, "ID = %d \tNextHop = %d\n", *rout[i].id, *rout[i].nextHop);
 		LogInfo(dataLog);
 	}
-	printf("***************************");
-	strcpy(dataLog, "***************************");
+	printf("***************************\n");
+	strcpy(dataLog, "***************************\n");
 	LogInfo(dataLog);
 }
 
@@ -76,7 +78,7 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 			printf("Switch %d: Handling REGISTER_RESPONSE message\n", ID);
 			printf("Switch %d: Message type = %c and neighbCount = %d\n", ID, buffer[0],neighbCount);
 			pos+=5;
-			
+			printf("Switch %d: failID = %d\n", ID, failID);
 			//For each of the neighbour parse the ID, active flag, IP and port
 			for(i=0;i<(neighbCount);i++){
 				
@@ -90,14 +92,19 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 				}
 				memset(temp, 0, strlen(temp));
 				strncpy(temp, &buffer[pos+=5+1],1);
+
+				pthread_mutex_lock(&lock);
 				neig[id].count = 0;
+				pthread_mutex_unlock(&lock);
+					
+				neig[id].f = (char *)malloc(sizeof(char)*1);
 				
 				if(temp[0]=='a'){
 					neig[id].f = "a";
 					printf("Switch %d: Flag = %s\n", ID, neig[id].f);
 				}
 				else{
-					neig[id].f = "n";
+					neig[id].f =  "n";
 					printf("Switch %d: Flag = %s\n", ID, neig[id].f);
 					pos+=2;
 				}
@@ -109,8 +116,8 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 					len=strlen(t);
 					bzero((char*)&neig[id].sa, sizeof(neig[id].sa));
 					if((hp=gethostbyname(t))==NULL){
-						printf("Switch %d: No server by that name\n", ID);
-						return 1;			
+						printf("Switch %d: No server by that name\n", ID);			
+						return 1;
 					}
 					bcopy((char*)hp->h_addr_list[0], (char*)&neig[id].sa.sin_addr.s_addr, hp->h_length);
 					neig[id].sa.sin_family = AF_INET; 
@@ -123,8 +130,13 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 					printf("Switch %d: PORT= %s\n",ID, t);
 					pos+=(len+1);					
 				}
+				
 				if(id==failID){
-					neig[id].f == "f";
+					pthread_mutex_lock(&lock);
+					neig[id].f = "f";
+					pthread_mutex_unlock(&lock);
+					printf("Switch %d : Neighbour ID %d set to failed flag\n", ID, id);
+					printf("Switch %d: Flag = %s\n", ID, neig[id].f);
 				}				
 			}
 			return neighbCount;
@@ -135,12 +147,14 @@ int RegisterResponseHandler(char buffer[BUFSIZE], char temp[BUFSIZE], int neighb
 
 }
 void countNeighbourActNotAct(int *countA, int *countNA, struct neighbour neig[NEIGHBSIZE]){
-	int i;
-	for(i=0;i<NEIGHBSIZE;i++){
+	int i;	
+	for(i=1;i<NEIGHBSIZE;i++){
+		pthread_mutex_lock(&lock);
 		if(neig[i].f == "a")
 			(*countA)++;
 		if(neig[i].f == "n")
 			(*countNA)++;
+		pthread_mutex_unlock(&lock);
 	}
 }
 
@@ -158,75 +172,88 @@ void FormatTopologyupdate(char buffer[BUFSIZE], struct neighbour neig[NEIGHBSIZE
 	sprintf(temp,"%05d", countA);
 	strcat(buffer, temp);
 	strcat(buffer, ",");
-	sprintf(temp,"%05d", countNA);
+	if(failID==0)
+		sprintf(temp,"%05d", countNA);
+	else
+		sprintf(temp,"%05d", (countNA+1));
 	strcat(buffer, temp);
 	
 	
-	for(i=0;i<NEIGHBSIZE;i++){
+	for(i=1;i<NEIGHBSIZE;i++){
+		pthread_mutex_lock(&lock);
 		if(neig[i].f=="a"){
 			sprintf(temp,"%05d", i);
 			strcat(buffer, ",");
 			strcat(buffer, temp);
-		}		
+		}
+		pthread_mutex_unlock(&lock);		
 	}
-	for(i=0;i<NEIGHBSIZE;i++){
+	for(i=1;i<NEIGHBSIZE;i++){
+		pthread_mutex_lock(&lock);
 		if(neig[i].f=="n"){
 			sprintf(temp,"%05d", i);
 			strcat(buffer, ",");
 			strcat(buffer, temp);		
 		}
+		pthread_mutex_unlock(&lock);
+	}
+	for(i=1;i<NEIGHBSIZE;i++){
+		pthread_mutex_lock(&lock);
+		if(neig[i].f=="f"){
+			sprintf(temp,"%05d", i);
+			strcat(buffer, ",");
+			strcat(buffer, temp);		
+		}
+		pthread_mutex_unlock(&lock);
 	}
 	strcat(buffer, "\n");
 	printf("Switch %d Topology Update Buffer =%s", ID, buffer);	
 }
 
-void KeepAliveAndTopologySender(int sockfd, int neighbCount, struct sockaddr_in contAddr, int ID){
+struct threadArg{
+	int sockfd;
+	struct sockaddr_in contAddr;
+};
+
+struct threadArgKA{
+	int sockfd;
+	struct sockaddr_in contAddr;
+	int neighbCount;
+};
+
+struct threadArgListen{
+	int sockfd;
+	struct sockaddr_in clientaddr;
+	int len;
 	char buffer[BUFSIZE];
-	int i,m,nBytes;
+};
+
+
+void *MKTopologyUpdate(void *input){
 	bool flag = false;
-		
+	int i, nBytes;
+	char buffer[BUFSIZE];
+		//M*K seconds elapsed. If A does not receive KA from B for M*K seconds, declares the link as down. Sends a TU to controller
 	while(1){
-		for(m=0;m<M;m++){
-			for(i=0;i<NEIGHBSIZE;i++){
-				
-				if(neig[i].f == "a"){
-					char alive[15];
-					sprintf(alive,"K%d",ID);
-					printf("Switch %d:  KEEP_ALIVE message = %s\n", ID, alive);
-					nBytes = sendto(sockfd, (char*)alive, strlen(alive), 0, (struct sockaddr*)&neig[i].sa, sizeof(neig[i].sa));
-					if(nBytes<0){
-						printf("Switch %d: Error sending Keep Alive to ID %d\n", ID, i);
-					}
-					else{
-						printf("Switch %d: Sent KEEP_ALIVE to ID %d\n", ID, i);	
-					}				
-				}
-			}
-			//Send TOPLOGY_UPDATE to the controller. The message includes a set of live neighbours of the switch
-			FormatTopologyupdate(buffer, neig);
-			nBytes = sendto(sockfd, (char*)buffer, strlen(buffer), 0, (struct sockaddr*)&contAddr, sizeof(contAddr));
-			if(nBytes<0){
-				printf("Switch %d: Error sending TOPOLOGY_UPDATE K to Controller\n", ID);
-			}
-			else{
-				printf("Switch %d: Sent TOPOLOGY_UPDATE K to Controller\n", ID);
-			}
-			delay(K);
-			printf("Switch %d: %d Seconds Elapsed\n", ID, K);
-		}//M*K seconds elapsed. If A does not receive KA from B for M*K seconds, declares the link as down. Sends a TU to controller
-		for(i=0;i<NEIGHBSIZE;i++){
+		sleep(M*K);
+		flag=false;
+		printf("Switch %d: %d Seconds elapsed\n", ID, M*K);
+		for(i=1;i<NEIGHBSIZE;i++){
+			pthread_mutex_lock(&lock);
 			if(neig[i].f=="a" && neig[i].count==0){
 				flag=true;
 				neig[i].f="n";
-				bzero((char*)&neig[i].sa, sizeof(neig[i].sa));
+				//bzero((char*)&neig[i].sa, sizeof(neig[i].sa));
+				printf("Switch %d: Neighbour ID %d is Unreachable. Moving A->NA\n", ID, i);
 				sprintf(dataLog, "Switch %d: Neighbour ID %d is Unreachable. Moving A->NA\n", ID, i);
 				LogInfo(dataLog);
 			}
 			neig[i].count=0;
+			pthread_mutex_unlock(&lock);
 		}
 		if(flag){
 			FormatTopologyupdate(buffer, neig);
-			nBytes = sendto(sockfd, (char*)buffer, strlen(buffer), 0, (struct sockaddr*)&contAddr, sizeof(contAddr));
+			nBytes = sendto(((struct threadArg*)input)->sockfd, (char*)buffer, strlen(buffer), 0, (struct sockaddr*)&((struct threadArg*)input)->contAddr, sizeof(((struct threadArg*)input)->contAddr));
 			if(nBytes<0){
 				printf("Switch %d: Error sending TOPOLOGY_UPDATE M*K to Controller \n", ID);
 			}
@@ -235,63 +262,118 @@ void KeepAliveAndTopologySender(int sockfd, int neighbCount, struct sockaddr_in 
 			}
 			flag=false;
 		}
+	}
+
+}
+
+//Every K seconds send Keep Alive and Topology Update
+void *KeepAliveAndTopologySender(void *input){
+	char buffer[BUFSIZE];
+	int i,m,nBytes;
+				
+	while(1){
+			
+			for(i=1;i<NEIGHBSIZE;i++){
+				
+				if((neig[i].f == "a")&&(i!=failID)){
+					char alive[15];
+					sprintf(alive,"K%d",ID);
+					printf("Switch %d:  KEEP_ALIVE message = %s\n", ID, alive);
+					nBytes = sendto(((struct threadArgKA*)input)->sockfd, (char*)alive, strlen(alive), 0, (struct sockaddr*)&neig[i].sa, sizeof(neig[i].sa));
+					if(nBytes<0){
+						printf("Switch %d: Error sending Keep Alive to ID %d\n", ID, i);
+					}
+					else{
+						printf("Switch %d: Sent KEEP_ALIVE to ID %d\n", ID, i);	
+					}				
+				}
+			}
+			
+			
+			//Send TOPLOGY_UPDATE to the controller. The message includes a set of live neighbours of the switch
+			FormatTopologyupdate(buffer, neig);
+			nBytes = sendto(((struct threadArgKA*)input)->sockfd, (char*)buffer, strlen(buffer), 0, (struct sockaddr*)&(((struct threadArgKA*)input)->contAddr), sizeof(((struct threadArgKA*)input)->contAddr));
+			if(nBytes<0){
+				printf("Switch %d: Error sending TOPOLOGY_UPDATE K to Controller\n", ID);
+			}
+			else{
+				printf("Switch %d: Sent TOPOLOGY_UPDATE K to Controller\n", ID);
+			}
+			printf("Switch %d: %d Seconds Elapsed\n", ID, K);
+			sleep(K);
 				
 	}
 }
-
-struct threadArg{
-	int sockfd;
-	struct sockaddr_in contAddr;
-};
 
 //**********
 //If Switch2 receives a "KEEP ALIVE" message from Switch1, it marks Switch1 as A and learns host port information for Switch1. 
 //If it receives ROUTE_UPDATE, it updates the table
 //**********
-void *Listener(void *input) {
-	//Keep listening on your PORT
-	printf("Switch %d: Inside Listener\n", ID);
-	char buffer[BUFSIZE];
-	struct sockaddr_in clientaddr;
-	int recvlen, id=0, nBytes=0, pos=0, countSW, i=0, len=0; char *temp;
-	while(1){
-		memset(buffer, 0, strlen(buffer));
-		printf("Switch %d: Listening\n", ID);
-		recvlen=recvfrom(((struct threadArg*)input)->sockfd, (char*)buffer, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &len);
-		printf("Message Received = %s\n", buffer);
-		switch(buffer[0]){
-			case 'K':sscanf(&buffer[1], "%d", &id);
-				printf("Switch %d: Received KEEP ALIVE from Neighbour %d\n", ID, id);
-				neig[id].count++;
-				if(neig[id].f=="n"){
-					bzero((char*)&neig[id].sa, sizeof(neig[id].sa));
-					neig[id].sa=clientaddr;
-					neig[id].port = ntohs(neig[id].sa.sin_port);
-					neig[id].f="a";
-					printf("Switch %d: Marked Neighbour %d as active\n", ID, id);
-					sprintf(dataLog, "Switch %d: Neighbour %d is now reachable. Moving NA->A\n", ID, i);
-					LogInfo(dataLog);
+void *processListener(void *input) {
+	
+	int recvlen, id=0, nBytes=0, pos=0, countSW, i=0; char *temp;
+	//printf("Switch %d: Message Received = %s\n", ID, ((struct threadArgListen*)input)->buffer);
+	char buf[BUFSIZE];
+	strcpy(buf, ((struct threadArgListen*)input)->buffer);
+		switch(buf[0]){
+			case 'K':sscanf(&buf[1], "%d", &id);
+				if(id!=failID){
+					printf("Switch %d: Received KEEP ALIVE from Neighbour %d\n", ID, id);
+					pthread_mutex_lock(&lock);
+					neig[id].count++;
+					pthread_mutex_unlock(&lock);
+					if(neig[id].f=="n"){
+						bzero((char*)&neig[id].sa, sizeof(neig[id].sa));
+						//memcpy((void *)&clientaddr, (void *)&neig[id].sa, sizeof(clientaddr));
+						/*neig[id].sa = clientaddr;
+						neig[id].sa.sin_family = AF_INET;
+						bcopy((char*)&clientaddr.sin_addr.s_addr, (char*)&neig[id].sa.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr));
+						bcopy((char*)&clientaddr.sin_port, (char*)&neig[id].sa.sin_port, sizeof(clientaddr.sin_port));*/
+						char tempAddr[INET_ADDRSTRLEN];
+						inet_ntop(AF_INET, &(((struct threadArgListen*)input)->clientaddr.sin_addr), tempAddr, INET_ADDRSTRLEN);
+						char *t; struct hostent *hp;
+						/*ADDED BY MALIN*/t = (char *)malloc(sizeof(char)*INET_ADDRSTRLEN);
+						strcpy(t,tempAddr);
+						printf("Switch %d :IP Address= %s\n", ID, tempAddr);
+						if((hp=gethostbyname(t))==NULL){
+							printf("Switch %d: No server by that name\n", ID);
+							/*ADDED BY MALIN*/free(t);			
+							exit(0);
+						}
+						bcopy((char*)hp->h_addr_list[0], (char*)&neig[id].sa.sin_addr.s_addr, hp->h_length);
+						neig[id].sa.sin_family = AF_INET; 
+						neig[id].port = ntohs(((struct threadArgListen*)input)->clientaddr.sin_port);
+						neig[id].sa.sin_port = htons(neig[id].port);
+						printf("Switch %d: Port Num %d\n", ID, neig[id].port);
+						neig[id].f="a";
+						printf("Switch %d: Marked Neighbour %d as active\n", ID, id);
+						printf("Switch %d: Neighbour %d is now reachable. Moving NA->A\n", ID, id);
+						sprintf(dataLog, "Switch %d: Neighbour %d is now reachable. Moving NA->A\n", ID, i);
+						LogInfo(dataLog);
 					
-					FormatTopologyupdate(buffer, neig);
-					nBytes = sendto(((struct threadArg*)input)->sockfd, (char*)buffer, strlen(buffer), 0, (struct sockaddr*)&((struct threadArg*)input)->contAddr, sizeof(((struct threadArg*)input)->contAddr));
-					if(nBytes<0){
-					printf("Switch %d: Error sending Keep Alive to Controller \n", ID);
+						FormatTopologyupdate(buf, neig);
+						nBytes = sendto(((struct threadArgKA*)input)->sockfd, (char*)buf, strlen(buf), 0, (struct sockaddr*)&((struct threadArgListen*)input)->clientaddr, sizeof(((struct threadArgListen*)input)->clientaddr));
+						if(nBytes<0){
+						printf("Switch %d: Error sending Keep Alive to Controller \n", ID);
+						}
+						printf("Switch %d: Sent TOPOLOGY_UPDATE Correction to Controller\n", ID);
+						/*ADDED BY MALIN*/free(t);
 					}
-					printf("Switch %d: Sent TOPOLOGY_UPDATE Correction to Controller\n", ID);
-				}				
+				}
 				break;
 			case 'U': printf("Switch %d: Received ROUTE_UPDATE from Controller\n", ID);
 				countSW=0;
+				temp = (char*)malloc(sizeof(100));
 			  	memset(temp, 0, strlen(temp));
 			  	pos=1;
-			  	strncpy(temp, &buffer[pos],5);
+			  	strncpy(temp, &buf[pos],5);
     			  	sscanf(temp, "%d", &countSW);
 			  	pos+=5+1;
 			  	printf("Switch %d: RU: Total Switches = %d pos = %d\n",  ID, countSW, pos);
 			  	for(i=0;i<countSW;i++){
 					  rout[i].id=(int*)malloc(sizeof(int));
 					  rout[i].nextHop = (int*)malloc(sizeof(int));
-					  strncpy(temp, &buffer[pos],5);
+					  strncpy(temp, &buf[pos],5);
 	    				  sscanf(temp, "%d", rout[i].id);
 					  pos+=5+1;
 					  if((*rout[i].id)>=NEIGHBSIZE){
@@ -300,18 +382,18 @@ void *Listener(void *input) {
 						free(rout[i].nextHop);
 						return NULL;
 					  }
-					  strncpy(temp, &buffer[pos],5);
+					  strncpy(temp, &buf[pos],5);
 	    				  sscanf(temp, "%d", rout[i].nextHop);
 					  pos+=5+1;
 				  }
 				  printRoutingTable(rout, countSW);
+				  free(temp);
 				  break;
-				  printf("Switch %d: RU: Total Switches = %d \n",  ID, id);
+				  //printf("Switch %d: RU: Total Switches = %d \n",  ID, id);
 			default:
 				break;
 		}
-	}	
-}
+}	
 
 /*********Debugging Purposes********/
 /*void *Dummy(void *input) {
@@ -329,7 +411,7 @@ void *Listener(void *input) {
 int main(int argc, char **argv){
 	int sockfd;		//Socket descriptor
 	char buffer[BUFSIZE];	//Buffer to receive messages
-	char regReqmessage[6];
+	char regReqmessage[12];
 	char temp[BUFSIZE];	//Temporary buffer to extract content
 	struct sockaddr_in contAddr,switchaddr;
 	struct hostent *hp;
@@ -341,22 +423,35 @@ int main(int argc, char **argv){
 	
 	
 	//Thread to handle concurrency
-	pthread_t tid;
-
+	//pthread_t tid;
+	pthread_t tid[3];
 	
 	ID = atoi(argv[1]); //Receive ID of Switch1
 	sprintf(regReqmessage, "R%05d", ID);
-	/******/printf("****The message: %s\n",regReqmessage);
+	//printf("****The message: %s\n",regReqmessage);
 	host=argv[2]; //Receive IP of Controller
 	portC= atoi(argv[3]); //Receive Port of Controller
 
 	if(argc==6){
 		failID = atoi(argv[5]); //Receive failure neighbour of Switch
 		printf("Neighbour ID whose link has failed = %d\n", failID);
+		strcat(regReqmessage, ",");
+		memset(temp, 0, strlen(temp));
+		sprintf(temp, "%05d", failID);
+		strcat(regReqmessage, temp);
 		//To handle failure
+		pthread_mutex_lock(&lock);
 		neig[failID].f = "f";
+		pthread_mutex_unlock(&lock);
+		
 	}
-	
+	else{
+		strcat(regReqmessage, ",");
+		memset(temp, 0, strlen(temp));
+		sprintf(temp, "%05d", 0);
+		strcat(regReqmessage, temp);
+	}
+	printf("****The message: %s\n",regReqmessage);
 	//Create socket
 	if((sockfd = socket(AF_INET, SOCK_DGRAM,0))<0){
 		printf("Switch %d: Socket creation failed\n", ID);
@@ -425,17 +520,39 @@ int main(int argc, char **argv){
 		return 0;
 	}
 	*/
-	//Implement the listener as a thread to handle concurrency
-	struct threadArg *Allen = (struct threadArg *)malloc(sizeof(struct threadArg));
-	Allen->sockfd = sockfd;
-	Allen->contAddr= contAddr;
-	pthread_create(&tid, NULL, Listener, (void *)Allen);
-	printf("AA\n");
-	//Send KEEP_ALIVE to active neighbours every 5 seconds in the Main() thread
-	KeepAliveAndTopologySender(sockfd, neighbCount, contAddr, ID);
-	printf("ZZ\n");
 
-	pthread_join(tid, NULL);
+	//Implement a thread[0] to function Keep Alive and Topology Update every K seconds
+	struct threadArgKA *Arms = (struct threadArgKA *)malloc(sizeof(struct threadArgKA));
+	Arms->sockfd = sockfd;
+	Arms->contAddr= contAddr;
+	Arms->neighbCount = neighbCount;
+	pthread_create(&tid[0], NULL, KeepAliveAndTopologySender, (void *)Arms);
+
+	//Implement a thread[1] to function Updated Topology Update every M*K seconds
+	struct threadArg *Arin = (struct threadArg *)malloc(sizeof(struct threadArg));
+	Arin->sockfd = sockfd;
+	Arin->contAddr= contAddr;
+	pthread_create(&tid[1], NULL, MKTopologyUpdate, (void *)Arin);
+
+	//Listen, get the message and give the message to the thread[2]
+	while(1){
+		memset(buffer, 0, strlen(buffer));
+		recvlen=recvfrom(sockfd, (char*)buffer, BUFSIZE, 0, (struct sockaddr*)&switchaddr, &len);
+		//When you receive a message give it to a thread.
+		struct threadArgListen *Allen = (struct threadArgListen *)malloc(sizeof(struct threadArgListen));
+		Allen->sockfd = sockfd;
+		Allen->clientaddr= switchaddr;
+		Allen->len = len;
+		strcpy(Allen->buffer, buffer);
+		pthread_create(&tid[2], NULL, processListener, (void *)Allen);		
+	}
+	
+
+	
+	//Join all of the threads
+	pthread_join(tid[0], NULL);
+	pthread_join(tid[1], NULL);
+	pthread_join(tid[2], NULL);
 	
 	//Close the client socket
 	close(sockfd);

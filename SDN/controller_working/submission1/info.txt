@@ -1,0 +1,5 @@
+My name: Malin Prematilake
+Team-mate: Sandya Arumugam
+
+What my code does: This is a working version of the controlle code
+It properly interacts with my team-mate's code for the switch

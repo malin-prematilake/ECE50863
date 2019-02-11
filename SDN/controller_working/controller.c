@@ -15,12 +15,12 @@
 //network properties
 #define PORT	 		8080 
 #define MAXLINE 		1024 
-#define CONFIG_FILE 	"config.txt"
+#define CONFIG_FILE 	"config1.txt"
 #define SIZE_OF_IP		16
 
 //timer thread properties
 #define M				5
-#define K				10
+#define K				5
 
 /*create struct for each msg type
  *create function to read each msg type (ones that are received)
@@ -33,7 +33,6 @@ int enableRouteUpdate = 0;
 int **bandWidth;
 int **delay;
 int **bWForCal;//0 if no edge, value if edge
-int **inValidLinks;
 
 typedef struct{
 	int id;
@@ -100,7 +99,7 @@ int setLinks(){
 		for(j=0;j<totalSwitchCount;j++){
 			prev = bWForCal[i][j];
 			
-			if((activeness[i]=='a')&&(activeness[j]=='a')&&((inValidLinks[i][j]==0)||(inValidLinks[j][i]==0))){
+			if((activeness[i]=='a')&&(activeness[j]=='a')){
 				bWForCal[i][j] = bandWidth[i][j];
 				bWForCal[j][i] = bandWidth[j][i];
 			} else{
@@ -143,7 +142,7 @@ void initializeLinks(){
 }*/
 
 //create the switch obj and add it to an array (later add this to the map)
-int addNewSwitch(int id, int fail, char *address, int port, char response[], int resSize){
+int addNewSwitch(int id, char *address, int port, char response[], int resSize){
 	
 	addresses[id-1] = address;
 	ports[id-1] = port;
@@ -153,27 +152,10 @@ int addNewSwitch(int id, int fail, char *address, int port, char response[], int
 		lastAccessTimes[id-1] = getControllerTime();
 	pthread_mutex_unlock(&lock);
 	
-	
+	//int tx = setLinks();//************************************************
 	//initLinks();
-	printf("sssssss\n");
 	
-	//checking inValidLinks
-	if (fail!=0){
-		printf("tttt: %d\n",fail);
-		inValidLinks[id-1][fail-1] = 1;
-		inValidLinks[fail-1][id-1] = 1;
-		printf("rrrrrr\n");
-	} else {
-		int ii;
-		for(ii=0;ii<totalSwitchCount;ii++){		
-			if(bandWidth[id-1][ii]!=0){
-				printf("yyyyyy\n");
-				inValidLinks[id-1][ii] = 0;
-				inValidLinks[ii][id-1] = 0;
-			}
-		}
-	}
-	printf("qqqqqq\n");
+	
 	
 	int nghbrs[totalSwitchCount];
 	
@@ -225,10 +207,20 @@ int addNewSwitch(int id, int fail, char *address, int port, char response[], int
 		switchFirstAccess[id-1] = 1;
 	}
 	
-	//if((!enableRouteUpdate)&&(totalSwitchCount==currentSwitchCount))
-	//		enableRouteUpdate = 1;
+	if((!enableRouteUpdate)&&(totalSwitchCount==currentSwitchCount))
+			enableRouteUpdate = 1;
 	
-
+	/*	
+	printf("Neighbours of %d: ",id);
+	for(i=0;i<totalSwitchCount;i++)
+		printf("%d, ", nghbrs[i]);
+	
+	printf("\n");
+	*/
+	/*
+	for(i=0;i<numOfNs;i++){
+		printf("Nghbr stuff: %d %c %d\n",nghbrs[i],myActiveness[i],myPorts[i]);
+	}*/
 	
 	//get the details of each neighbour
 	createRegResponse(id, response, resSize, nghbrs, numOfNs, myAddresses, myPorts, myActiveness);
@@ -237,13 +229,6 @@ int addNewSwitch(int id, int fail, char *address, int port, char response[], int
 		free(myAddresses[i]);
 		
 	free(myAddresses);
-	
-	int tx = setLinks();//************************************************
-	
-	pthread_mutex_lock(&lock);
-		enableRouteUpdate = tx;
-	pthread_mutex_unlock(&lock);
-	
 	return 0;
 }
 
@@ -363,13 +348,13 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 	
 	switch(type){
 		case 'R'://RegisterRequest
-			rq = readRegReq2(msg);
+			rq = readRegReq(msg);
 			logRegRequest(rq.switchID);
 			
-			printf("pppp: %d\n",rq.fail);
+			//printf("Current port and address: %d %s\n",port, address);
 			
-			addNewSwitch(rq.switchID, rq.fail, address, port, response, responseSize);
-			//setLinks();
+			addNewSwitch(rq.switchID, address, port, response, responseSize);
+			setLinks();
 			response[responseSize-1] = EOF;
 			logRegResponse(rq.switchID);
 			
@@ -391,18 +376,14 @@ int processMessageAndResponse(char msg[], char *address, int port, char response
 			
 			updateDeadNeighbs(senderSw, deadNeighbs, deadNs);
 			
-			//int anyChange = setLinks();//********************************************************
-			pthread_mutex_lock(&lock);
-				enableRouteUpdate = enableRouteUpdate||setLinks();//********************************************************
-			pthread_mutex_unlock(&lock);	
+			int anyChange = setLinks();//********************************************************
+				
 				
 			if (totalSwitchCount==currentSwitchCount){	
 				
-				//logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
-				logTopoUpdate(senderSw, enableRouteUpdate, activeness, totalSwitchCount);
+				logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
 				
-				//if ((anyChange)||(enableRouteUpdate)){
-				if (enableRouteUpdate){
+				if ((anyChange)||(enableRouteUpdate)){
 					printf("MUST SEND ROUTE UPDATE\n");
 					
 					int fd = sendRouteUpdate(leyn);
@@ -475,10 +456,8 @@ void * timerThread(){
 		}
 		printf("\n");
 		if(1==setLinks())//****************************************************
-		pthread_mutex_lock(&lock);
-			enableRouteUpdate = 1;
-		pthread_mutex_unlock(&lock);	
-		
+			enableRouteUpdate=1;
+			
 		sleep(M*K);
 	}
 	
@@ -546,14 +525,12 @@ int main() {
 	bandWidth = (int **)malloc(totalSwitchCount*sizeof(int *));
 	delay = (int **)malloc(totalSwitchCount*sizeof(int *));
 	bWForCal = (int **)malloc(totalSwitchCount*sizeof(int *));
-	inValidLinks = (int **)malloc(totalSwitchCount*sizeof(int *));
 	neighbours = (int **)malloc(totalSwitchCount*sizeof(int *));
 	
 	for (i=0;i<totalSwitchCount;i++){
 		bandWidth[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 		delay[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 		bWForCal[i]=(int *)malloc(totalSwitchCount*sizeof(int));
-		inValidLinks[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 		neighbours[i]=(int *)malloc(totalSwitchCount*sizeof(int));
 	}
 	
@@ -562,24 +539,20 @@ int main() {
 			bandWidth[i][j]=INFINITE;
 			delay[i][j]=0;
 			bWForCal[i][j]=INFINITE;
-			inValidLinks[i][j] = -1;
 			neighbours[i][j]=0;
 		}
 	}
 	
 	readFile(CONFIG_FILE, bandWidth, delay, bWForCal, totalSwitchCount);
-	
+	/*
 	for (i=0;i<totalSwitchCount;i++){
 		for (j=0;j<totalSwitchCount;j++){
 			
 			bWForCal[i][j]=bandWidth[i][j];
-			//printf("***** %d\n",bWForCal[i][j]);
-			
-			if(bandWidth[i][j]!=0)
-				inValidLinks[i][j] = 0;
+			printf("***** %d\n",bWForCal[i][j]);
 
 		}
-	}
+	}*/
 	
 	if( pthread_create(&tid[0], NULL, timerThread, NULL) != 0 ){
 	   printf("Failed to create timer thread\n");
@@ -600,7 +573,6 @@ int main() {
 			//} else {
 				firstTime = 0;
 				int fd = sendRouteUpdate(len);
-				
 				if(fd)
 					printf("##### ERROR IN ROUTE UPDATE 1 #####\n");
 				/*****************************************************
@@ -647,7 +619,7 @@ int main() {
 				enableRouteUpdate = 0;
 			}
 		}
-		
+		/*
 		printf("--------EDGES-------\n");
 		for (i=0;i<totalSwitchCount;i++){
 			for (j=0;j<totalSwitchCount;j++){
@@ -658,12 +630,12 @@ int main() {
 		printf("--------xxxx------\n");
 		for (i=0;i<totalSwitchCount;i++){
 			for (j=0;j<totalSwitchCount;j++){
-					printf("%d ",inValidLinks[i][j]);
+					printf("%d ",edges[i][j]);
 			}
 			printf("\n");
 		}
 		printf("--------------------\n");
-		
+		*/
 		//printf("NEIGHBOURS:\n");
 		//for (i=0;i<totalSwitchCount;i++){
 			//for (j=0;j<totalSwitchCount;j++){
@@ -693,7 +665,7 @@ int main() {
 
 		int responseSize = 500;
 		char response[responseSize];
-		        
+		
 		int yy = processMessageAndResponse(buffer, tempAddr, tempPort, response, responseSize);
 		//printf("THIS IS YY: %d\n",yy);
 		response[responseSize-1] = EOF;
