@@ -7,3 +7,5 @@ Issues
 5. Print the path and route table on controller side for each switch
 6. Put the message process into different thread
 7. First route update - done
+
+T55555,00001,00001,23112:80808,23211

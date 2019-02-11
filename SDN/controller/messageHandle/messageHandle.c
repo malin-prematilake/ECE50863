@@ -69,6 +69,19 @@ registerReq readRegReq(char *msg){
 	
 }
 
+//R00001,00002
+registerReq readRegReq2(char *msg){
+	
+	int swID, fail;
+	int n = sscanf(msg, "R%05d,%05d", &swID, &fail);
+	
+	registerReq rq;
+	rq.switchID = swID;
+	rq.fail = fail;
+	
+	return rq;
+}
+
 
 void stringForOneSwitch(char msg[], int msgSize, int id, char *address, int port, char active){
 
@@ -206,12 +219,14 @@ int main(){
 	
 	int re[6];
 	int ac,dc,sw;
-	
 	readTopoUpdate("T00012,00003,00002,23433,34352,34213,34343,45433", re, &sw, &ac, &dc);
 	
 	printf("active (%d) deactive %d\n ", ac, dc);
 	
 	
+	registerReq er = readRegReq2("R00001,00000");
+	printf("(%d) deactive %d\n",er.switchID, er.fail);
 	return 0;
 }
+
 */

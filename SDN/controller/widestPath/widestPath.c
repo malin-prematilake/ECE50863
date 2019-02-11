@@ -131,23 +131,38 @@ void dijkstraWidestPath(int **G,int n,int startnode, int dest[], int hops[]){
 	
 	for(i=0;i<n;i++){
 		if(i!=startnode){
+			printf("\nBandwidth of widest path: %d\n",bw[i]);
+			printf("Path: ");
 			
 			dest[hp] = i;
+			
+			if(bw[i]!=0)
+				printf("%d ",i+1);
+			
+			else{
+				j=0;
+				printf("%d ",j);
+				hops[hp] = -1;
+				hp++;
+				continue;
+			}
+			
 			j=i;
 			do {
 				prev = j;
 				j=pred[j];
 				printf("<-%d",j+1);
 			} while(j!=startnode);
-			printf("\nStart node: %d\n",prev+1);
+			//printf("\nStart node: %d\n",prev+1);
 			hops[hp] = prev;
+				
 			hp++;
 		}
 	}
-	printf("===============================\n");
+	printf("\n===============================\n");
 }
-
 /*
+
 int main()
 {
 	int i,j,n,u;
@@ -157,11 +172,12 @@ int main()
 	int hops[MAX-1];
 	int dest[MAX-1];
 	
-	int G[MAX][MAX] = {{0, 100, 0, 200, 0, 80}, 
+	int G[MAX][MAX] = {{0, 100, 0, 0, 0, 80}, 
                        {100, 0, 50, 0, 180, 0}, 
                         {0, 50, 0, 50, 0, 150}, 
-                        {200, 0, 50, 0, 100, 0}, 
-                        {0, 180, 0, 100, 0, 0}, 
+                        {0, 0, 50, 0, 100, 0}, 
+                        {0, 180, 0, 100, 0, 0},
+                        //{0, 0, 0, 0, 0, 0} 
                         {80, 0, 150, 0, 0, 0} 
                     };
 	
@@ -177,12 +193,12 @@ int main()
 		for(j=0;j<MAX;j++)
 			GX[i][j] = G[i][j];
 	
-	u = 1;//startnode-1
+	u = 0;//startnode-1
 	dijkstraWidestPath(GX,n,u, dest, hops);
 	
 	
 	for(i=0;i<MAX-1;i++)
-		printf("Next hops: %d, %d\n",dest[i],hops[i]);
+		printf("Next hops: %d, %d\n",dest[i]+1,hops[i]+1);
 		
 	for(i=0;i<MAX;i++)
 		free(GX[i]);

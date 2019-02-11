@@ -8,6 +8,7 @@
 //struct for REGISTER_REQUEST
 typedef struct{
 	int switchID;
+	int fail;
 } registerReq;
 
 //convert 5 digit char array to int
@@ -15,6 +16,7 @@ int charTo5Int(char arr[]);
 
 //reading REGISTER_REQUEST
 registerReq readRegReq(char *msg);
+registerReq readRegReq2(char *msg);
 
 int intToStr(int x, char str[], int d);
 
