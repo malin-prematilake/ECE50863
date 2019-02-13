@@ -1,0 +1,330 @@
+1,22c1,2
+< /*******************************************
+<  * log sequence number, msg type, time, the data needed.
+<  * different function for different msg type
+<  * 
+<  * logStart:
+<  * 	Filename->controller<time>
+<  * RegReqm msg: 
+<  * 	Log #:Time:Message type:Switch ID
+<  * RegResp msg:
+<  * 	Log #:Time:Message type:Switch ID
+<  * 
+<  * 
+<  * *****************************************/
+< #include "log.h"
+< 
+< FILE *f;
+< int logEntry;
+< char fileName[40];
+< 	
+< char *getTime(){
+< 	time_t rawtime;
+<     struct tm * timeinfo;
+---
+> /* Dijkstra's Algorithm in C */
+> #include "widestPath.h"
+24,28c4,5
+<     time ( &rawtime );
+<     timeinfo = localtime ( &rawtime );
+<     
+<     return asctime(timeinfo);
+< }
+---
+> //#define INFINITE 0
+> #define MAX 6	//Number of vertices
+30,32d6
+< unsigned long getUnixTime(){
+< 	return (unsigned long)time(NULL); 
+< }
+34,40c8
+< void initializeLog(){
+< 	
+< 	char *name = "../ControllerLog.txt";
+< 	
+< 	snprintf(fileName, 40, "%s", name);
+<     	
+< 	f = fopen(fileName, "w");
+---
+> int readNumOfSwitches(char *fileName){
+42,47c10,13
+< 	if (f == NULL){
+< 		printf("Error opening file!\n");
+< 		exit(1);
+< 	}
+< 		
+< 	fprintf(f, "Log started at: %s\n", getTime());
+---
+> 	FILE *fptr;
+>     char ch[10];
+>  
+>     fptr = fopen(fileName, "r");
+49c15,27
+< 	logEntry = 0;
+---
+>     if (fptr == NULL){
+>         printf("Cannot open file \n");
+>         exit(1);
+>     }
+>     ch[0] = fgetc(fptr);
+>     
+>     int i=0;
+>     while ((ch[i] != '\n')&&(ch[i] != EOF)){
+> 		i++;
+>         ch[i] = fgetc(fptr);
+>     }
+>     
+>     fclose(fptr);
+51,53c29
+< 	fclose(f);
+< 
+< 	return;
+---
+> 	return (int)atoi(ch);
+56c32
+< void logRegRequest(int switchID){
+---
+> void readFile(const char* file_name, int **bandWidth, int **delay, int **bw2, int numOfSwitches){
+58,61c34,35
+< 	//Log #:Time:Message type:Switch ID
+< 	logEntry++;
+< 
+< 	f = fopen(fileName, "a");
+---
+> 	FILE* file = fopen (file_name, "r");
+> 	int i = 0;
+63,66c37
+< 	if (f == NULL){
+< 		printf("Error opening file!\n");
+< 		exit(1);
+< 	}
+---
+> 	int row=0, col=0, bw=0, dly=0;
+68c39
+< 	fprintf(f, "%s	REGISTER_REQUEST:SwitchID-%05d\n",  getTime(), switchID);
+---
+> 	fscanf (file, "%d", &i);    
+70c41,45
+< 	fclose(f);
+---
+> 	while (!feof (file)){ 
+> 		fscanf (file, "%d", &row);
+> 		fscanf (file, "%d", &col);
+> 		fscanf (file, "%d", &bw);
+> 		fscanf (file, "%d", &dly);
+72,73c47,49
+< 	return;
+< }
+---
+> 		bandWidth[row-1][col-1] = bw;
+> 		bw2[row-1][col-1] = bw;
+> 		delay[row-1][col-1] = dly;
+75c51,55
+< void logRegResponse(int switchID){
+---
+> 		bandWidth[col-1][row-1] = bw;
+> 		bw2[col-1][row-1] = bw;
+> 		delay[col-1][row-1] = dly;
+> 	  
+> 	}
+77,78c57,58
+< 	//Log #:Time:Message type:Switch ID
+< 	logEntry++;
+---
+> 	fclose (file);        
+> }
+80,84c60,96
+< 	f = fopen(fileName, "a");
+< 	
+< 	if (f == NULL){
+< 		printf("Error opening file!\n");
+< 		exit(1);
+---
+> char *strrev(char *str)
+> {
+>       char *p1, *p2;
+> 
+>       if (! str || ! *str)
+>             return str;
+>       for (p1 = str, p2 = str + strlen(str) - 1; p2 > p1; ++p1, --p2)
+>       {
+>             *p1 ^= *p2;
+>             *p2 ^= *p1;
+>             *p1 ^= *p2;
+>       }
+>       return str;
+> }
+>  
+> void dijkstraWidestPath(int **G,int n,int startnode, int dest[], int hops[]){
+>  
+> 	int cost[n][n],bw[n],pred[n];
+> 	int visited[n],count,maxBw,nextnode,i,j;
+> 	
+> 	//pred[] stores the predecessor of each node
+> 	//count gives the number of nodes seen so far
+> 	//create the cost matrix
+> 	for(i=0;i<n;i++)
+> 		for(j=0;j<n;j++)
+> 			if(G[i][j]==0)
+> 				cost[i][j]=INFINITE;
+> 			else
+> 
+> 				cost[i][j]=G[i][j];
+> 	
+> 	//initialize pred[],distance[] and visited[]
+> 	for(i=0;i<n;i++)
+> 	{
+> 		bw[i]=cost[startnode][i];
+> 		pred[i]=startnode;
+> 		visited[i]=0;
+87,89c99,125
+< 	fprintf(f, "%s	REGISTER_RESPONSE:SwitchID-%05d\n",  getTime(), switchID);
+< 	
+< 	fclose(f);
+---
+> 	bw[startnode]=0;
+> 	visited[startnode]=1;
+> 	count=1;
+> 	
+> 	while(count<n-1)
+> 	{
+> 		maxBw=INFINITE;
+> 		
+> 		//nextnode gives the node at maximum bandwidth
+> 		for(i=0;i<n;i++)
+> 			if(bw[i]>maxBw&&!visited[i])
+> 			{
+> 				maxBw=bw[i];
+> 				nextnode=i;
+> 			}
+> 			
+> 			//check if a better path exists through nextnode			
+> 			visited[nextnode]=1;
+> 			for(i=0;i<n;i++)
+> 				if(!visited[i])
+> 					if(((maxBw<cost[nextnode][i])?maxBw:cost[nextnode][i])>bw[i])
+> 					{
+> 						bw[i]=((maxBw<cost[nextnode][i])?maxBw:cost[nextnode][i]);
+> 						pred[i]=nextnode;
+> 					}
+> 		count++;
+> 	}
+91c127,145
+< 	return;
+---
+> 	
+> 	int prev, hp=0;
+> 	//print the path and distance of each node
+> 	for(i=0;i<n;i++){
+> 		if(i!=startnode){
+> 			
+> 			dest[hp] = i;
+> 			j=i;
+> 			do
+> 			{
+> 				prev = j;
+> 				j=pred[j];
+> 				//printf("<-%d",j);
+> 			}while(j!=startnode);
+> 			//printf("\nStart node: %d\n",prev);
+> 			hops[hp] = prev;
+> 			hp++;
+> 		}
+> 	}
+94c148,151
+< void logTopoUpdate(int switchID, int change, char *activity, int sizee){
+---
+> /*
+> int main()
+> {
+> 	int i,j,n,u;
+96c153
+< 	logEntry++;
+---
+> 	n=MAX;
+98c155,156
+< 	f = fopen(fileName, "a");
+---
+> 	int hops[MAX-1];
+> 	int dest[MAX-1];
+100,109c158,164
+< 	if(change){
+< 		fprintf(f, "%s	TOPOLOGY_UPDATE:SwitchID-%05d: ",  getTime(), switchID);
+< 		int i;
+< 		
+< 		for(i=0;i<sizee;i++)
+< 			fprintf(f, "%c ", activity[i]);
+< 
+< 		fprintf(f, "\n");
+< 
+< 	}
+---
+> 	int G[MAX][MAX] = {{0, 100, 0, 200, 0, 80}, 
+>                        {100, 0, 50, 0, 180, 0}, 
+>                         {0, 50, 0, 50, 0, 150}, 
+>                         {200, 0, 50, 0, 100, 0}, 
+>                         {0, 180, 0, 100, 0, 0}, 
+>                         {80, 0, 150, 0, 0, 0} 
+>                     };
+111,112d165
+< 	else
+< 		fprintf(f, "%s	TOPOLOGY_UPDATE:SwitchID-%05d: No update\n",  getTime(), switchID);
+114,120c167
+< 	fclose(f);
+< 
+< 
+< 	return;
+< }
+< 
+< void logRouteUpdate(int switchID, int yes){
+---
+> 	int **GX;
+122c169
+< 	logEntry++;
+---
+> 	GX = (int **)malloc(sizeof(int *)*MAX);
+124c171,176
+< 	f = fopen(fileName, "a");
+---
+> 	for(i=0;i<MAX;i++)
+> 		GX[i] = (int *)malloc(sizeof(int)*MAX);
+> 		
+> 	for(i=0;i<MAX;i++)
+> 		for(j=0;j<MAX;j++)
+> 			GX[i][j] = G[i][j];
+126,129c178,179
+< 	if(yes)
+< 		fprintf(f, "%s	ROUTE_UPDATE:SwitchID-%05d\n", getTime(), switchID);
+< 	else
+< 		fprintf(f, "%s	TOPOLOGY_UPDATE:SwitchID-%05d: No update\n",  getTime(), switchID);
+---
+> 	u = 1;//startnode-1
+> 	dijkstraWidestPath(GX,n,u, dest, hops);
+131,139c181,183
+< 	fclose(f);
+< 
+< 	return;
+< }
+< /*
+< int main(){
+< 		initializeLog();
+< 		logRegRequest(4352);
+< 		logRegResponse(352);
+---
+> 	
+> 	for(i=0;i<MAX-1;i++)
+> 		printf("Next hops: %d, %d\n",dest[i],hops[i]);
+141,143c185,188
+< 		char d[6] = {'n','n','a','a','n','a'};
+< 		logTopoUpdate(23211, 1, d, 6);
+< 		logTopoUpdate(11111, 0, d, 6);
+---
+> 	for(i=0;i<MAX;i++)
+> 		free(GX[i]);
+> 	
+> 	free(GX);
+145,146d189
+< 		routeUpdate(12221, 1);
+< 		routeUpdate(12221, 0);
+148a192
+> 

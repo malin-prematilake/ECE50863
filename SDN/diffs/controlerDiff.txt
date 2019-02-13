@@ -1,0 +1,693 @@
+22,23c22,23
+< #define M				5
+< #define K				10
+---
+> #define M				10
+> #define K				5
+35,36c35
+< int **bWForCal;//0 if no edge, value if edge
+< int **inValidLinks;
+---
+> int **bWForCal;//0 if no edge, 1 if edge
+53d51
+< int *switchFirstAccess;// set this to 1 at first access 
+56c54
+< int leyn;
+---
+> 
+63,65c61
+< 	pthread_mutex_lock(&lock);
+< 		activeness[id-1] = state;
+< 	pthread_mutex_unlock(&lock);
+---
+> 	activeness[id-1] = state;
+70,72c66
+< 	pthread_mutex_lock(&lock);
+< 		lastAccessTimes[id-1] = getControllerTime();
+< 	pthread_mutex_unlock(&lock);
+---
+> 	lastAccessTimes[id-1] = getControllerTime();
+103c97,98
+< 			if((activeness[i]=='a')&&(activeness[j]=='a')&&((inValidLinks[i][j]==0)||(inValidLinks[j][i]==0))){
+---
+> 			//if(bandWidth[i][j]!=0){
+> 			if((activeness[i]=='a')&&(activeness[j]=='a')){
+105d99
+< 				bWForCal[j][i] = bandWidth[j][i];
+108d101
+< 				bWForCal[j][i] = INFINITE;
+115,130c108
+< 	/*printf("++++++++++++++++++++++++++++++++++++\n");
+< 	for(i=0;i<totalSwitchCount;i++){
+< 		for(j=0;j<totalSwitchCount;j++){
+< 			printf("%d ",edges[i][j]);
+< 		}
+< 		printf("\n");
+< 	}
+< 	printf("--------------------\n");
+< 	for(i=0;i<totalSwitchCount;i++){
+< 		for(j=0;j<totalSwitchCount;j++){
+< 			printf("%03d ",bWForCal[i][j]);
+< 		}
+< 		printf("\n");
+< 	}
+< 	printf("++++++++++++++++++++++++++++++++++++\n");
+< 	*/return change;
+---
+> 	return change;
+132c110
+< /*
+---
+> 
+139c117
+< 			edges[i][j] = 0;
+---
+> 	
+143c121
+< }*/
+---
+> }
+146c124
+< int addNewSwitch(int id, int fail, char *address, int port, char response[], int resSize){
+---
+> int addNewSwitch(int id, char *address, int port, char response[], int resSize){
+149a128,129
+> 	activeness[id-1] = 'a';
+> 	lastAccessTimes[id-1] = getControllerTime();
+151,176c131
+< 	pthread_mutex_lock(&lock);
+< 		activeness[id-1] = 'a';
+< 		lastAccessTimes[id-1] = getControllerTime();
+< 	pthread_mutex_unlock(&lock);
+< 	
+< 	
+< 	//initLinks();
+< 	printf("sssssss\n");
+< 	
+< 	//checking inValidLinks
+< 	if (fail!=0){
+< 		printf("tttt: %d\n",fail);
+< 		inValidLinks[id-1][fail-1] = 1;
+< 		inValidLinks[fail-1][id-1] = 1;
+< 		printf("rrrrrr\n");
+< 	} else {
+< 		int ii;
+< 		for(ii=0;ii<totalSwitchCount;ii++){		
+< 			if(bandWidth[id-1][ii]!=0){
+< 				printf("yyyyyy\n");
+< 				inValidLinks[id-1][ii] = 0;
+< 				inValidLinks[ii][id-1] = 0;
+< 			}
+< 		}
+< 	}
+< 	printf("qqqqqq\n");
+---
+> 	int tx = setLinks();//tx is useless
+185d139
+< 	
+201a156
+> 		myActiveness[i] = activeness[nghbrs[i]-1];
+203,211c158
+< 		char temp;
+< 		pthread_mutex_lock(&lock);
+< 			temp = activeness[nghbrs[i]-1];
+< 		pthread_mutex_unlock(&lock);
+< 		
+< 		myActiveness[i] = temp;//activeness[nghbrs[i]-1];
+< 		
+< 		//if (activeness[nghbrs[i]-1]=='a'){
+< 		if (temp=='a'){
+---
+> 		if (activeness[nghbrs[i]-1]=='a'){
+219a167
+> 			//printf("*****THESE: %s\n",myAddresses[i]);
+223,226c171
+< 	if (switchFirstAccess[id-1]==0){
+< 		currentSwitchCount++;
+< 		switchFirstAccess[id-1] = 1;
+< 	}
+---
+> 	currentSwitchCount++;
+228,229c173,178
+< 	//if((!enableRouteUpdate)&&(totalSwitchCount==currentSwitchCount))
+< 	//		enableRouteUpdate = 1;
+---
+> 	if((!enableRouteUpdate)&&(totalSwitchCount==currentSwitchCount))
+> 			enableRouteUpdate = 1;
+> 		
+> 	printf("Neighbours of %d: ",id);
+> 	for(i=0;i<totalSwitchCount;i++)
+> 		printf("%d, ", nghbrs[i]);
+231c180
+< 
+---
+> 	printf("\n");
+232a182,185
+> 	/*
+> 	for(i=0;i<numOfNs;i++){
+> 		printf("Nghbr stuff: %d %c %d\n",nghbrs[i],myActiveness[i],myPorts[i]);
+> 	}*/
+240,246d192
+< 	
+< 	int tx = setLinks();//************************************************
+< 	
+< 	pthread_mutex_lock(&lock);
+< 		enableRouteUpdate = tx;
+< 	pthread_mutex_unlock(&lock);
+< 	
+249d194
+< 
+261c206
+< void updateActiveNeighbs(int id, int liveNs[], int number){
+---
+> void updateActiveNeighbs(int liveNs[], int number){
+269,273d213
+< 	//////
+< 	for(i=0;i<number;i++){
+< 		bWForCal[id-1][liveNs[i]-1] = bandWidth[id-1][liveNs[i]-1];
+< 		bWForCal[liveNs[i]-1][id-1] = bandWidth[liveNs[i]-1][id-1];
+< 	}
+275,276d214
+< 	
+< 	
+279,281c217
+< void updateDeadNeighbs(int id, int deadNs[], int number){
+< 	//set active ns as well
+< 	//set the edge to 0
+---
+> void updateDeadNeighbs(int deadNs[], int number){
+283c219
+< 	/*int i;
+---
+> 	int i;
+288,292d223
+< 	}*/
+< 	int i;
+< 	for(i=0;i<number;i++){
+< 		bWForCal[id-1][deadNs[i]-1] = 0;
+< 		bWForCal[deadNs[i]-1][id-1] = 0;
+297,358d227
+< 
+< void populate_sockaddr(int port, char addr[], struct sockaddr_in *dst_in4, socklen_t *addrlen) {
+< 	int af = AF_INET;
+< 	*addrlen = sizeof(*dst_in4);
+< 	memset(dst_in4, 0, *addrlen);
+< 	dst_in4->sin_family = af;
+< 	dst_in4->sin_port = htons(port);
+< 	inet_pton(af, addr, &dst_in4->sin_addr);
+< }
+< 
+< 
+< int sendRouteUpdate(int len){
+< 	int uif, sockTemp;
+< 	for(uif=0;uif<totalSwitchCount;uif++){
+< 		
+< 		int destinations[totalSwitchCount-1];
+< 		int nextHops[totalSwitchCount-1];
+< 	
+< 		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>WW\n");
+< 			
+< 		dijkstraWidestPath(bWForCal, totalSwitchCount, (uif+1)-1, destinations, nextHops);
+< 		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>AA\n");
+< 		
+< 		int i;
+< 		for (i=0;i<totalSwitchCount-1;i++){
+< 			destinations[i]++;
+< 			nextHops[i]++;
+< 		}
+< 		char responseFF[500];
+< 		
+< 		createRouteUpdate(responseFF, totalSwitchCount-1, destinations, nextHops, activeness);
+< 		logRouteUpdate((uif+1), 1);
+< 		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>BB\n");
+< 		
+< 		struct sockaddr_in swAddr;
+< 		socklen_t addrlen;
+< 
+< 		// Creating socket file descriptor 
+< 		if ( (sockTemp = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+< 			perror("socket creation failed"); 
+< 			exit(EXIT_FAILURE); 
+< 		} 
+< 		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CC\n");
+< 		populate_sockaddr(ports[uif], addresses[uif], &swAddr, &addrlen);
+< 		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>DD\n");
+< 		int n = sendto(sockTemp, (const char *)responseFF, strlen(responseFF), MSG_CONFIRM, (const struct sockaddr *)&swAddr, sizeof(swAddr));
+< 		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>EE\n");
+< 		
+< 		if (n<0)
+< 			return 1;
+< 			
+< 		printf("SWITCH: %d -> %s\n",uif+1, responseFF);
+< 		
+< 		//logRouteUpdate(uif+1, 1);
+< 			
+< 	}	
+< 	//enableRouteUpdate = 0;
+< 	close(sockTemp);
+< 	
+< 	return 0;
+< }
+< 
+366c235
+< 			rq = readRegReq2(msg);
+---
+> 			rq = readRegReq(msg);
+369c238,240
+< 			printf("pppp: %d\n",rq.fail);
+---
+> 			//printf("Current port and address: %d %s\n",port, address);
+> 			
+> 			addNewSwitch(rq.switchID, address, port, response, responseSize);
+371,372d241
+< 			addNewSwitch(rq.switchID, rq.fail, address, port, response, responseSize);
+< 			//setLinks();
+378a248
+> 			
+390c260
+< 			updateActiveNeighbs(senderSw,liveNeighbs, numOfLiveNeighbs);
+---
+> 			updateActiveNeighbs(liveNeighbs, numOfLiveNeighbs);
+392c262
+< 			updateDeadNeighbs(senderSw, deadNeighbs, deadNs);
+---
+> 			updateDeadNeighbs(deadNeighbs, deadNs);
+394,405c264,269
+< 			//int anyChange = setLinks();//********************************************************
+< 			pthread_mutex_lock(&lock);
+< 				enableRouteUpdate = enableRouteUpdate||setLinks();//********************************************************
+< 			pthread_mutex_unlock(&lock);	
+< 				
+< 			if (totalSwitchCount==currentSwitchCount){	
+< 				
+< 				//logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
+< 				logTopoUpdate(senderSw, enableRouteUpdate, activeness, totalSwitchCount);
+< 				
+< 				//if ((anyChange)||(enableRouteUpdate)){
+< 				if (enableRouteUpdate){
+---
+> 			int anyChange = setLinks();
+> 			
+> 			logTopoUpdate(senderSw, anyChange, activeness, totalSwitchCount);
+> 			//printf("Current switch count: %d/%d\n",currentSwitchCount,totalSwitchCount);
+> 			if (totalSwitchCount==currentSwitchCount){
+> 				if ((anyChange)||(enableRouteUpdate)){
+406a271
+> 					//strncpy(response, "MUST SEND ROUTE UPDATE\n", 23);
+408,414d272
+< 					int fd = sendRouteUpdate(leyn);
+< 					
+< 					if(fd)
+< 						printf("##### ERROR IN ROUTE UPDATE ALL #####\n");
+< 				
+< 					
+< 					/*-----------------------------------------------------------------------------------
+416a275,276
+> 				
+> 					//printf("WW\n");
+418a279
+> 					//printf("AA\n");
+424a286
+> 					//printf("BB\n");
+427,434d288
+< 					
+< 					printf("Route update for switch %d\n",senderSw);
+< 					
+< 					for (i=0;i<totalSwitchCount-1;i++)
+< 						printf("%d -> %d\n",destinations[i], nextHops[i]);
+< 					
+< 					printf("--------------------------\n");
+< 					-------------------------------------------------------------------------------------*/
+435a290
+> 					//printf("CC\n");
+440a296
+> 					//strncpy(response, "0\n", 2);
+445c301
+< 			else {
+---
+> 			else
+447,448c303
+< 				printf("Count not set yet\n");
+< 			}
+---
+> 			//printf("This is a T msg\n");
+458c313
+< 	int i,j;
+---
+> 	int i;
+465c320
+< 		printf("Checking activeness at interval: ");
+---
+> 		printf("Checking switch access times\n");
+471c326
+< 					activeness[i]='n';			
+---
+> 					activeness[i]='n';
+473,474d327
+< 			
+< 			printf("%c ",activeness[i]);
+476,480d328
+< 		printf("\n");
+< 		if(1==setLinks())//****************************************************
+< 		pthread_mutex_lock(&lock);
+< 			enableRouteUpdate = 1;
+< 		pthread_mutex_unlock(&lock);	
+481a330,332
+> 		if(1==setLinks())
+> 			enableRouteUpdate=1;
+> 			
+487d337
+< 
+533d382
+< 	switchFirstAccess = (int*)malloc(sizeof(int)*totalSwitchCount);
+538d386
+< 	memset(switchFirstAccess, 0, totalSwitchCount * sizeof(int));
+549d396
+< 	inValidLinks = (int **)malloc(totalSwitchCount*sizeof(int *));
+556d402
+< 		inValidLinks[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+565d410
+< 			inValidLinks[i][j] = -1;
+572,583d416
+< 	for (i=0;i<totalSwitchCount;i++){
+< 		for (j=0;j<totalSwitchCount;j++){
+< 			
+< 			bWForCal[i][j]=bandWidth[i][j];
+< 			//printf("***** %d\n",bWForCal[i][j]);
+< 			
+< 			if(bandWidth[i][j]!=0)
+< 				inValidLinks[i][j] = 0;
+< 
+< 		}
+< 	}
+< 	
+595c428
+< 		printf("****************New Session****************\n");
+---
+> 		printf("********New Session********\n");
+598c431
+< 			if(currentSwitchCount==totalSwitchCount){
+---
+> 			if(currentSwitchCount!=totalSwitchCount){
+600,647c433,434
+< 			//} else {
+< 				firstTime = 0;
+< 				int fd = sendRouteUpdate(len);
+< 				
+< 				if(fd)
+< 					printf("##### ERROR IN ROUTE UPDATE 1 #####\n");
+< 				/*****************************************************
+< 				int uif, sockTemp;
+< 				for(uif=0;uif<totalSwitchCount;uif++){
+< 					
+< 					int destinations[totalSwitchCount-1];
+< 					int nextHops[totalSwitchCount-1];
+< 				
+< 					//printf("WW\n");
+< 						
+< 					dijkstraWidestPath(bWForCal, totalSwitchCount, (uif+1)-1, destinations, nextHops);
+< 					//printf("AA\n");
+< 					
+< 					int i;
+< 					for (i=0;i<totalSwitchCount-1;i++){
+< 						destinations[i]++;
+< 						nextHops[i]++;
+< 					}
+< 					char responseFF[500];
+< 					
+< 					createRouteUpdate(responseFF, totalSwitchCount-1, destinations, nextHops, activeness);
+< 					logRouteUpdate((uif+1), 1);
+< 					
+< 					
+< 					struct sockaddr_in swAddr;
+< 					socklen_t addrlen;
+< 	 
+< 					// Creating socket file descriptor 
+< 					if ( (sockTemp = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+< 						perror("socket creation failed"); 
+< 						exit(EXIT_FAILURE); 
+< 					} 
+< 					
+< 					populate_sockaddr(ports[uif], addresses[i], &swAddr, &addrlen);
+< 					sendto(sockTemp, (const char *)responseFF, strlen(responseFF), MSG_CONFIRM, (const struct sockaddr *)&swAddr, len);
+< 					
+< 					printf("SWITCH: %d -> %s\n",uif+1, responseFF);
+< 						
+< 				}	
+< 				enableRouteUpdate = 0;
+< 				close(sockTemp);
+< 				**********************************************************/
+< 				enableRouteUpdate = 0;
+---
+> 			} else {
+> 				firstTime = 0;				
+651c438
+< 		printf("--------EDGES-------\n");
+---
+> 		/*printf("EDGES:\n");
+658c445
+< 		printf("--------xxxx------\n");
+---
+> 		printf("NEIGHBOURS:\n");
+661c448
+< 					printf("%d ",inValidLinks[i][j]);
+---
+> 					printf("%d ",neighbours[i][j]);
+664,673c451
+< 		}
+< 		printf("--------------------\n");
+< 		
+< 		//printf("NEIGHBOURS:\n");
+< 		//for (i=0;i<totalSwitchCount;i++){
+< 			//for (j=0;j<totalSwitchCount;j++){
+< 				//	printf("%d ",neighbours[i][j]);
+< 			//}
+< 			//printf("\n");
+< 		//}
+---
+> 		}*/
+681c459
+< 		leyn = len;
+---
+> 		
+689,692c467,470
+< 		//printf("Message info:\n");
+< 		//printf("Sender IP address: %s\n", tempAddr);
+< 		//printf("Sender Port: %d\n", tempPort);
+< 		printf("Request: %s\n",buffer);
+---
+> 		printf("Message info:\n");
+> 		printf("Sender IP address: %s\n", tempAddr);
+> 		printf("Sender Port: %d\n", tempPort);
+> 		printf("Message: %s\n",buffer);
+696c474
+< 		        
+---
+> 		
+704c482
+< 			//printf("Response message sent\n"); 
+---
+> 			printf("Response message sent\n"); 
+706,707d483
+< 		printf("\n================================================\n");
+< 		printf("1AX|Ports|A|IPaddress|Last available time\n");
+708a485,486
+> 		printf("Current switch information:\n");
+> 		printf("Ports|A|IP addr|Last available time\n");
+710c488
+< 			printf("%03d|%05d|%c|%s|%lu \n",switchFirstAccess[i], ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
+---
+> 			printf("%05d|%c|%s|%lu \n",ports[i],activeness[i],addresses[i],lastAccessTimes[i]);
+723,724c501,503
+< 
+< int main(){
+---
+> int main() { 
+> 	totalSwitchCount=6;
+> 	int i,j;
+726,739d504
+< 	char acc[] = {'n','a','n','a','a','n'};
+< 	int org[6][6] = {{0, 100, 0, 200, 0, 80},
+< 					   {100, 0, 50, 0, 180, 0},
+< 					   {0, 50, 0, 50, 0, 150},
+< 			           {200, 0, 50, 0, 100, 0},
+< 			           {0, 180, 0, 100, 0, 0},
+< 			           {80, 0, 150, 0, 0, 0}};
+< 			 
+< 	int cops[6][6]  = {{0, 0, 0, 0, 0, 0},
+< 					   {0, 0, 0, 0, 0, 0},
+< 					   {0, 0, 0, 0, 0, 0},
+< 			           {0, 0, 0, 0, 0, 0},
+< 			           {0, 0, 0, 0, 0, 0},
+< 			           {0, 0, 0, 0, 0, 0}};;
+741,742c506,508
+< 	int change = 0;
+< 	int prev;
+---
+> 	activeness = (char *)malloc(sizeof(char)*totalSwitchCount);
+> 	addresses = (char **)malloc(sizeof(char*)*totalSwitchCount);
+> 	delay = (int **)malloc(totalSwitchCount*sizeof(int *));
+744d509
+< 	int i,j;
+746,761c511,515
+< 	for(i=0;i<6;i++){
+< 		for(j=0;j<6;j++){
+< 			prev = cops[i][j];
+< 			
+< 			//if(bandWidth[i][j]!=0){
+< 			if((acc[i]=='a')&&(acc[j]=='a')){
+< 				cops[i][j] = org[i][j];
+< 			} else{
+< 				cops[i][j] = INFINITE;
+< 			}
+< 			//}
+< 			if (prev!=cops[i][j]){
+< 				printf("(%d, %d)",i+1,j+1);
+< 				change=1;
+< 			}
+< 		}
+---
+> 	memset(activeness, 'n', totalSwitchCount * sizeof(char));
+> 	
+> 	for (i=0;i<totalSwitchCount;i++){
+> 		addresses[i] = (char *)malloc(sizeof(char)*30);
+> 		memset(addresses[i], '\0', 30 * sizeof(char));
+763,795c517,526
+< 	printf("Change %d\n",change);
+< 
+< 	for(i=0;i<6;i++){
+< 		for(j=0;j<6;j++){
+< 			printf("%d ",cops[i][j]);
+< 		}
+< 		printf("\n");
+< 	}
+< 	change = 0;
+< 	
+< 	acc[0] = 'a';
+< 	acc[1] = 'n';
+< 	acc[2] = 'n';
+< 	acc[3] = 'n';
+< 	acc[4] = 'n';
+< 	acc[5] = 'a';
+< 	
+< 	for(i=0;i<6;i++){
+< 		for(j=0;j<6;j++){
+< 			prev = cops[i][j];
+< 			
+< 			//if(bandWidth[i][j]!=0){
+< 			if((acc[i]=='a')&&(acc[j]=='a')){
+< 				cops[i][j] = org[i][j];
+< 			} else {
+< 				cops[i][j] = INFINITE;
+< 			}
+< 			//}
+< 			if (prev!=cops[i][j]){
+< 				printf("(%d, %d)",i+1,j+1);
+< 				change=1;
+< 			}
+< 		}
+---
+> 	//initialize bw and delay matrices
+> 	bandWidth = (int **)malloc(totalSwitchCount*sizeof(int *));
+> 	bWForCal = (int **)malloc(totalSwitchCount*sizeof(int *));
+> 	neighbours = (int **)malloc(totalSwitchCount*sizeof(int *));
+> 	
+> 	for (i=0;i<totalSwitchCount;i++){
+> 		bandWidth[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+> 		bWForCal[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+> 		neighbours[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+> 		delay[i]=(int *)malloc(totalSwitchCount*sizeof(int));
+797,801c528,534
+< 	printf("Change %d\n",change);
+< 
+< 	for(i=0;i<6;i++){
+< 		for(j=0;j<6;j++){
+< 			printf("%d ",cops[i][j]);
+---
+> 	for (i=0;i<totalSwitchCount;i++){
+> 		for (j=0;j<totalSwitchCount;j++){
+> 			bandWidth[i][j]=INFINITE;
+> 			bWForCal[i][j]=INFINITE;
+> 			delay[i][j]=0;
+> 			neighbours[i][j]=0;
+> 			
+803d535
+< 		printf("\n");
+804a537
+> 	readFile(CONFIG_FILE, bandWidth, delay, bWForCal, totalSwitchCount);
+806c539,546
+< 	change = 0;
+---
+> 		
+> 		
+> 		activeness[0]='a';
+> 		activeness[1]='a';
+> 		activeness[2]='a';
+> 		activeness[3]='a';
+> 		activeness[4]='a';
+> 		activeness[5]='a';
+808,816c548,553
+< 	for(i=0;i<6;i++){
+< 		for(j=0;j<6;j++){
+< 			prev = cops[i][j];
+< 			
+< 			//if(bandWidth[i][j]!=0){
+< 			if((acc[i]=='a')&&(acc[j]=='a')){
+< 				cops[i][j] = org[i][j];
+< 			} else {
+< 				cops[i][j] = INFINITE;
+---
+> 		int c = setLinks();
+> 		
+> 		printf("EDGES (%d):\n",c);
+> 		for (i=0;i<totalSwitchCount;i++){
+> 			for (j=0;j<totalSwitchCount;j++){
+> 					printf("%03d ",bWForCal[i][j]);
+818,821c555,564
+< 			//}
+< 			if (prev!=cops[i][j]){
+< 				printf("(%d, %d)",i+1,j+1);
+< 				change=1;
+---
+> 			printf("\n");
+> 		}
+> 		activeness[3]='n';
+> 		
+> 		c = setLinks();
+> 		
+> 		printf("EDGES (%d):\n",c);
+> 		for (i=0;i<totalSwitchCount;i++){
+> 			for (j=0;j<totalSwitchCount;j++){
+> 					printf("%03d ",bWForCal[i][j]);
+822a566
+> 			printf("\n");
+824,829c568,579
+< 	}
+< 	printf("Change %d\n",change);
+< 
+< 	for(i=0;i<6;i++){
+< 		for(j=0;j<6;j++){
+< 			printf("%d ",cops[i][j]);
+---
+> 		
+> 		activeness[3]='a';
+> 		activeness[4]='n';
+> 		
+> 		c = setLinks();
+> 		
+> 		printf("EDGES (%d):\n",c);
+> 		for (i=0;i<totalSwitchCount;i++){
+> 			for (j=0;j<totalSwitchCount;j++){
+> 					printf("%03d ",bWForCal[i][j]);
+> 			}
+> 			printf("\n");
+831,832c581
+< 		printf("\n");
+< 	}
+---
+> 		
+834,835c583
+< }
+< */
+---
+> }*/
