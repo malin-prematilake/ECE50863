@@ -49,3 +49,36 @@ views that suffer from quality issues. hence content providers must take action 
 
 to do this we need to understand which matrics matter the most, relationships between quality metrics and engagement, how to quantify the
 importance of a metric, try to explian some eceptional behaviors
+
+quantify the magnitude and the direction of a relationship between the engagement metric and quality metrics using kendall correlation
+this lets us understand if and how the quality impacts user engagement
+
+---------------------------------------------------------
+after using correlation, use information gain to understand if a pair of metrics 
+are complementary or if they capture the same effect, and to identify the top 
+metrics that should be improved to increase user engagement
+infor gain provides more of an in depth analysis of the interaction between the 
+quality metrics
+------------------------------------------------------------
+regression is used to identify theexpected improvement in egagement if a specific 
+quality metric is improved by a given amount
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+view level engagement
+We find that BufRatio has the highest engagement among all quality mterics
+relative impact of other quality metrics depend on the content ytpe
+
+Long VoD content
+Bufratio has the highest correlation with play time
+jointime and avgbitrate has very low correlation 
+
+infogain for bufratio is low
+ratebuf has higher info gain, same true for avgbitrate
+
+when we combine other mterics with avgbitrate, it provides the highest bivariate info gain. 
+
+combinations of bufration, ratebuf and randqual had strong correlations, but their combinations do not add any new info
+
+
+
+
