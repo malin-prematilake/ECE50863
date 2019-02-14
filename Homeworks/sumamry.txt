@@ -1,0 +1,51 @@
+video streaming is very improtant today
+will increase the amount of traffic in the future
+users expect higher quality
+
+questions asked in this paper
+	how much does quality matter to user engagement
+	different metrics affect differently to user enegagement
+	can we use same metric acroos diffetnet platforms
+	
+critieria for maesuring
+	qualiyt matric:  encodling, bufferig experienced, 
+	time scales of user engagement
+	types of video content
+	
+-----------------------------------------------------------
+collecting data
+data collecting system has 2 parts
+	client resident instrumentation library
+	data aggeragation and processing side running on the positive side
+
+collect and process data affliated over a wide variety of end users, video content, isp, content delivery networks
+
+----------------------------------------------------------
+engagement metrics
+describes user involvement and interaction
+	view level: single view is a user viewwing a single video continously 
+	viewer level: experience of a single viewer (aka tool) : # of viewers per viewer and total play time of all videos in that viewer
+-----------------------------------------------------------
+video quality metrics
+join time
+buffering ratio
+rate of bufffering events
+average bit rate
+rendering quality
+---------------------------------------------------------
+dataset
+collected data classified into 3 categories
+diverse providers are chosen to eliminate any biases
+
+longVoD: length between 35-60
+shortVoD: 2-5 mins
+Live: special bcz client buffers are designed so that viewer lag is no more than few secnods from the original
+		all viewers are roughly synced in time
+		
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ANALYSIS
+an overview of the results show that while most of the viewing sessions are enjoying good quality, there is a non-negligible number of 
+views that suffer from quality issues. hence content providers must take action to improve user experience and increase user engagement
+
+to do this we need to understand which matrics matter the most, relationships between quality metrics and engagement, how to quantify the
+importance of a metric, try to explian some eceptional behaviors
