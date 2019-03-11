@@ -1,0 +1,30 @@
+DDos: on the manufacturer's network and other network
+Data spoofing: Leaking senstivie information
+Malware attakcs: infected device in the network, 
+Identify illegal users
+
+IP spoofing: can a device pretend to be anohter divece in hte network
+
+==========================================================================================
+IoT devices used as botnets
+Botnets are used in DDos, steal data, send spam
+Crypto curreency mining
+
+
+How to id spam
+
+one class classification: classificaiton done in server, based on some data set, classificaiton
+not customized to user network. this classificaiton is done in iot devices (sort of)
+
+why this is bad: updated device firmware can change the traffic pattern
+we need to look into the source/dest of traffic as well to decide a threat (it can )
+
+=======================================================================
+Our target:
+
+Identify threats, based on the following models
+	botnet attacks
+	data snooping
+	type of packets: Like icmp, ping of death, http flood, udp flood, syn flood...
+	
+clustering

@@ -65,8 +65,10 @@ quality metric is improved by a given amount
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 view level engagement
-We find that BufRatio has the highest engagement among all quality mterics
-relative impact of other quality metrics depend on the content ytpe
+We find that BufRatio has the highest engagement among all 
+quality mterics
+relative impact of other quality metrics depend on the content 
+ytpe
 
 Long VoD content
 Bufratio has the highest correlation with play time
@@ -79,6 +81,34 @@ when we combine other mterics with avgbitrate, it provides the highest bivariate
 
 combinations of bufration, ratebuf and randqual had strong correlations, but their combinations do not add any new info
 
+Live content
+avgbitrate is more correlated, jointime is weakly correlated
+
+Live users are more sensitive to buffering events compared to LongVoD. avg buffering dur. is smaller for lingVoD
+
+fewer and shorter buffering events for longVoD
+
+for live, buffer is shorter to ensure that the stream is current. 
+
+
+short video
+Bufratio and Rendqual are strongly correlated, having the most effect on playtime
+join time is weakly correlated
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+viewer level engagement
+
+analysis of user engagement in viewer level
+num of views and total play time are impacted by the quality mterics
+the mterics that impact view level also impact viewer level 
+engagement
+the correlation between the engagement metrics and the quality 
+mterics more striking 
+
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 
