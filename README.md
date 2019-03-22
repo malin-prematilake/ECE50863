@@ -13,3 +13,4 @@ Project 1: SDN
 	
 	#Clean log files: make cleanLog 
 	
+Project 1: IoT Device

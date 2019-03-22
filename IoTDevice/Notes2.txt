@@ -1,0 +1,32 @@
+we can use this the unsw work as the basis and build something on top of that, with more capabilities in detecting data
+we can do:
+	see if inside data is going to the outside
+	some one is accessing our devices without permission
+	what if attacks are done based on the MUD profile (attack during an off peak hour)
+	see the status of the ports: blocked, any new ones open
+	this paper says nothing about illegal use of devices' computational power (eg: crypto mining):IP or MAC spoofing can hide the IP so that it 
+		cannot be seen from MUD profiling (what if an infected device impersonates other devices and does the same thing)
+	focus several   attacking one server (e.g. instead of one device sending 100 pkts a second, 10 devices send 10 pkts per second, where 10 pkts/s 
+		is considered not dangerous)
+	brute force attacks on trying to access (this still goes through the router)
+	most attacks are detected, not identified: identifying can lead to more effective blocking
+	
+MUD files
+	
+for that we need more insight into the data
+
+packet(row['Packet ID'], row['TIME'], row['Size'], row['eth.src'], row['eth.dst'], 
+row['IP.src'], row['IP.dst'], row['IP.proto'], row['port.src'], row['port.dst'])
+
+use eth src as device id
+
+per device time vs data
+
+use eth.src and eth.dst to identify incoming and outgoing traffic
+
+group by device: 
+	time vs data: tells the peak and off peak hours of data: local and internet traffic--over a week, over a month
+	ip.dst vs data: 
+	(outgoing)ip.dst vs number of times it is accessed in a unit time: 
+	(incoming)ip.src vs number of times it is accessed in a unit time:
+	
