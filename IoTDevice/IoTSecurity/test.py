@@ -13,25 +13,27 @@ deviceList_df = pd.read_csv("data/original/devices.txt")
 # for i, row in deviceList_df.iterrows():
 
 i = 13
-devName = deviceList_df.iloc[13]['Device']
-devMAC = deviceList_df.iloc[13]['MAC']
+devName = deviceList_df.iloc[1]['Device']
+devMAC = deviceList_df.iloc[1]['MAC']
 devMAC = ' '.join(devMAC.split())
 print("=="+devMAC)
 
 figName = devName+".png"
 device_df_t1 = df[df['eth.src'] == devMAC]
+
 if device_df_t1.empty:
     print("THIS IS EMPTY")
 
-device_df_time = device_df_t1[['TIME', 'Size']]
+else:
+    device_df_time = device_df_t1[['TIME', 'IP.dst']]
+    print(device_df_time)
+    firstTime = device_df_t1.iloc[0]['TIME']
+    lastTime = device_df_t1.iloc[-1]['TIME']
 
-firstTime = device_df_t1.iloc[0]['TIME']
-lastTime = device_df_t1.iloc[-1]['TIME']
-
-binRange = np.arange(firstTime, lastTime, TIME_BIN)
-cats, bins = pd.cut(device_df_time['TIME'], binRange, retbins=True)
-device_df = device_df_time.groupby(cats).sum()
-final = device_df.drop(columns=['TIME'])
-print(final) # final.plot.bar()
-plt.savefig("data/original/"+fileName+"/"+figName, bbox_inches='tight')
-print(devName+" completed")
+    # binRange = np.arange(firstTime, lastTime, TIME_BIN)
+    # cats, bins = pd.cut(device_df_time['TIME'], binRange, retbins=True)
+    # device_df = device_df_time.groupby(cats).sum()
+    # final = device_df.drop(columns=['TIME'])
+    # print(final) # final.plot.bar()
+    # plt.savefig("data/original/"+fileName+"/"+figName, bbox_inches='tight')
+    print(devName+" completed")

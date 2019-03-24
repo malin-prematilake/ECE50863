@@ -1,0 +1,8 @@
+Dataframe of TP-Link Day Night Cloud camera is empty.
+Dataframe of Shenzhen Reecam is empty.
+Dataframe of PIX-STAR Photo-frame is empty.
+MacBook: Unknown error.
+Dataframe of MacBook/Iphone is empty.
+NEST Protect smoke alarm: Unknown error.
+Dataframe of Blipcare Blood Pressure meter is empty.
+Dataframe of IPhone is empty.

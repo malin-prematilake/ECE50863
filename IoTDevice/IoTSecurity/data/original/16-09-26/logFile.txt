@@ -1,0 +1,13 @@
+Dataframe of Insteon Camera is empty.
+Dataframe of Shenzhen Reecam is empty.
+Dataframe of iHome is empty.
+Dataframe of Withings Aura smart sleep sensor is empty.
+Dataframe of Light Bulbs LiFX Smart Bulb is empty.
+Dataframe of Nest Dropcam is empty.
+Dataframe of Android Phone is empty.
+Dataframe of Laptop is empty.
+Dataframe of MacBook is empty.
+Dataframe of Android Phone is empty.
+Dataframe of MacBook/Iphone is empty.
+NEST Protect smoke alarm: Unknown error.
+Dataframe of Blipcare Blood Pressure meter is empty.
