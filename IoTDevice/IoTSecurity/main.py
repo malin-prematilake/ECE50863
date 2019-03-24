@@ -1,30 +1,41 @@
+# This program should plot time vs size for each device
 import pandas as pd
 import matplotlib.pyplot as plt
-import datetime
-import csv
-from packet import packet
+import numpy as np
 
-'''
-with open('data/testSet.csv', mode='r') as csv_file:
-    csv_reader = csv.DictReader(csv_file)
-    line_count = 0
-    for row in csv_reader:
-        if line_count == 0:
-            line_count += 1
+TIME_BIN = 300*6
+# p1 = packet(row['Packet ID'], row['TIME'], row['Size'], row['eth.src'], row['eth.dst'], row['IP.src'], row['IP.dst'], row['IP.proto'], row['port.src'], row['port.dst'])
 
-        p1 = packet(row['Packet ID'], row['TIME'], row['Size'], row['eth.src'], row['eth.dst'], row['IP.src'], row['IP.dst'], row['IP.proto'], row['port.src'], row['port.dst'])
-        p1.description()
-        line_count += 1
-    print("Processed {line_count} lines.")
-'''
+fileName = "16-09-26"
+df = pd.read_csv("data/original/"+fileName+"/"+fileName+".csv")
+deviceList_df = pd.read_csv("data/original/devices.txt")
 
-df = pd.read_csv("data/original/16-09-23/16-09-23.csv")
-babyMonitor_df = df[df['eth.src'] == "18:b4:30:25:be:e4"]
+for i, row in deviceList_df.iterrows():
 
-babyMonitor_df['TIME'] = pd.to_datetime(babyMonitor_df['TIME'], unit='s')
+    devName = deviceList_df.iloc[i]['Device']
+    devMAC = deviceList_df.iloc[i]['MAC']
+    devMAC = ' '.join(devMAC.split())
 
-babyMonitor_df.set_index("TIME", inplace=True)
-babyMonitor_df.sort_index(inplace=True)
-print(babyMonitor_df.head())
-babyMonitor_df["Size"].plot.bar()
-plt.show()
+    figName = devName+".png"
+    device_df_t1 = df[df['eth.src'] == devMAC]
+
+    if device_df_t1.empty:
+        print("Dataframe of "+devName+"is empty")
+
+    else:
+        #########
+        device_df_time = device_df_t1[['TIME', 'Size']]
+        # device_df_time.TIME = pd.to_numeric(device_df_time.TIME)
+        # device_df_time.Size = pd.to_numeric(device_df_time.Size)
+
+        firstTime = device_df_t1.iloc[0]['TIME']
+        lastTime = device_df_t1.iloc[-1]['TIME']
+
+        binRange = np.arange(firstTime, lastTime, TIME_BIN)
+        cats, bins = pd.cut(device_df_time['TIME'], binRange, retbins=True)
+        device_df = device_df_time.groupby(cats).sum()
+        final = device_df.drop(columns=['TIME'])
+        final.plot.bar()
+        plt.savefig("data/original/"+fileName+"/"+figName, bbox_inches='tight')
+        print(devName+" completed")
+
