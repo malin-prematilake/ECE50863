@@ -1,4 +1,4 @@
-# This program should plot time vs destination for each device
+# This program should plot time vs size for each device
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,45 +6,49 @@ import numpy as np
 TIME_BIN = 300*6
 # p1 = packet(row['Packet ID'], row['TIME'], row['Size'], row['eth.src'], row['eth.dst'], row['IP.src'], row['IP.dst'], row['IP.proto'], row['port.src'], row['port.dst'])
 
-
 fileName = "16-09-23"
-logName = "logFile2.txt"
-
-logfile = open("data/original/"+fileName+"/"+logName, "w+")
 df = pd.read_csv("data/original/"+fileName+"/"+fileName+".csv")
 deviceList_df = pd.read_csv("data/original/devices.txt")
 
-for i, row in deviceList_df.iterrows():
+for j, row in deviceList_df.iterrows():
 
-    devName = deviceList_df.iloc[i]['Device']
-    devMAC = deviceList_df.iloc[i]['MAC']
+    devName = deviceList_df.iloc[j]['Device']
+    devMAC = deviceList_df.iloc[j]['MAC']
     devMAC = ' '.join(devMAC.split())
 
-    figName = devName + ".png"
+    logName = devName+"_logFile.txt"
+    logName2 = devName+"_IPADDRESSES.txt"
+
+    logfile = open("data/original/"+fileName+"/"+logName, "w+")
+    ipAddressFile = open("data/original/"+fileName+"/"+logName2, "w+")
+
+    figName = devName+".png"
 
     try:
-        device_df_t1 = df[df['IP.dst'] == devMAC]
+        device_df_t1 = df[df['eth.src'] == devMAC]
 
         if device_df_t1.empty:
-            print("Dataframe of "+devName+" is empty")
-            logfile.write(("Dataframe of "+devName+" is empty.\n"))
+            print("THIS IS EMPTY")
 
         else:
-            #########******
-            device_df_time = device_df_t1[['TIME', 'Size']]
-            # device_df_time.TIME = pd.to_numeric(device_df_time.TIME)
-            # device_df_time.Size = pd.to_numeric(device_df_time.Size)
+            device_df_dest = device_df_t1[['TIME', 'IP.dst', 'Size']]
+            er1 = device_df_dest.groupby('IP.dst')['TIME'].apply(list)
+            numberOfDevices = len(er1)
+            ipAddresses = er1.index.tolist()
+            print(numberOfDevices)
 
-            firstTime = device_df_t1.iloc[0]['TIME']
-            lastTime = device_df_t1.iloc[-1]['TIME']
+            i = 0
+            while i < numberOfDevices:
+                print(j, ': This is repetition: ', i)
+                lengthOfList = len(er1[i])
+                listOfDummys = np.ones(lengthOfList)+i
+                plt.scatter(er1[i], listOfDummys, s=2)
+                ipAddressFile.write(str(i)+': '+ipAddresses[i]+'\n')
 
-            binRange = np.arange(firstTime, lastTime, TIME_BIN)
-            cats, bins = pd.cut(device_df_time['TIME'], binRange, retbins=True)
-            device_df = device_df_time.groupby(cats).count()
-            final = device_df.drop(columns=['TIME'])
-            final.plot.bar()
-            plt.savefig("data/original/"+fileName+"/"+figName, bbox_inches='tight')
-            print(devName+" completed")
+                i = i+1
+
+            plt.savefig("data/original/"+fileName+"/"+figName, figsize=(20, 18), dpi=200)
+            print(devName + " completed")
 
     except IOError:
         print(devName+': An error occured trying to read the file.')
@@ -70,5 +74,7 @@ for i, row in deviceList_df.iterrows():
         print(devName+' :An error occured.')
         logfile.write(devName + ': Unknown error.\n')
 
-logfile.close()
-print("End of program")
+    logfile.close()
+    ipAddressFile.close()
+
+# classify as inside and outside devices

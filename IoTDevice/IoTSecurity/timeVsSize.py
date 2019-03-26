@@ -30,7 +30,6 @@ for i, row in deviceList_df.iterrows():
             logfile.write(("Dataframe of "+devName+" is empty.\n"))
 
         else:
-            #########******
             device_df_time = device_df_t1[['TIME', 'Size']]
             # device_df_time.TIME = pd.to_numeric(device_df_time.TIME)
             # device_df_time.Size = pd.to_numeric(device_df_time.Size)
