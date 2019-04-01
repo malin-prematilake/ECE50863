@@ -6,14 +6,27 @@ import numpy as np
 TIME_BIN = 300*6
 # p1 = packet(row['Packet ID'], row['TIME'], row['Size'], row['eth.src'], row['eth.dst'], row['IP.src'], row['IP.dst'], row['IP.proto'], row['port.src'], row['port.dst'])
 
-fileName = "16-09-23"
+fileName = "16-10-12"
 df = pd.read_csv("data/original/"+fileName+"/"+fileName+".csv")
 deviceList_df = pd.read_csv("data/original/devices.txt")
 
-for j, row in deviceList_df.iterrows():
+lengthOfDataF = len(deviceList_df.index)
+print('THIS IS LENGTH: ', lengthOfDataF)
+
+toDrop = ['IP.dst', 'TIME']
+
+theUnit = 10
+
+j = theUnit
+print('THIS IS J: ', j)
+
+if j == theUnit:
+
+# for j, row in deviceList_df.iterrows():
 
     devName = deviceList_df.iloc[j]['Device']
     devMAC = deviceList_df.iloc[j]['MAC']
+
     devMAC = ' '.join(devMAC.split())
 
     logName = devName+"_logFile.txt"
@@ -22,32 +35,44 @@ for j, row in deviceList_df.iterrows():
     logfile = open("data/original/"+fileName+"/"+logName, "w+")
     ipAddressFile = open("data/original/"+fileName+"/"+logName2, "w+")
 
-    figName = devName+".png"
+    figName = devName
 
     try:
-        device_df_t1 = df[df['eth.src'] == devMAC]
+        device_df_t1 = df[df['eth.src'] == devMAC] # clear
 
         if device_df_t1.empty:
             print("THIS IS EMPTY")
 
         else:
-            device_df_dest = device_df_t1[['TIME', 'IP.dst', 'Size']]
-            er1 = device_df_dest.groupby('IP.dst')['TIME'].apply(list)
+            device_df_dest = device_df_t1[['IP.dst', 'TIME']] # clear
+            er1 = device_df_dest.groupby('IP.dst')['TIME'].apply(list) # clear
+
             numberOfDevices = len(er1)
             ipAddresses = er1.index.tolist()
+
             print(numberOfDevices)
 
             i = 0
+
+            fig, ax = plt.subplots()
+
             while i < numberOfDevices:
-                print(j, ': This is repetition: ', i)
+
                 lengthOfList = len(er1[i])
-                listOfDummys = np.ones(lengthOfList)+i
+                listOfDummys = np.ones(lengthOfList)+i # clear
                 plt.scatter(er1[i], listOfDummys, s=2)
                 ipAddressFile.write(str(i)+': '+ipAddresses[i]+'\n')
 
                 i = i+1
 
-            plt.savefig("data/original/"+fileName+"/"+figName, figsize=(20, 18), dpi=200)
+                # listOfDummys.clear()
+
+            # clear here
+            # device_df_dest.drop(toDrop, inplace = True, axis=1)
+            ax.legend()
+            ax.grid(True)
+            plt.savefig("data/original/"+fileName+"/"+figName+str(j)+".png", figsize=(20, 18), dpi=200)
+
             print(devName + " completed")
 
     except IOError:

@@ -1,105 +1,92 @@
 # This program should plot time vs size for each device
 import pandas as pd
+from addressLookupTest import *
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 TIME_BIN = 300*6
 # p1 = packet(row['Packet ID'], row['TIME'], row['Size'], row['eth.src'], row['eth.dst'], row['IP.src'], row['IP.dst'], row['IP.proto'], row['port.src'], row['port.dst'])
 
-fileName = "16-10-12"
+fileName = "16-09-29"
 df = pd.read_csv("data/original/"+fileName+"/"+fileName+".csv")
 deviceList_df = pd.read_csv("data/original/devices.txt")
 
-lengthOfDataF = len(deviceList_df.index)
-print('THIS IS LENGTH: ', lengthOfDataF)
+devIndex = 2  # change this to choose the device interested
 
-toDrop = ['IP.dst', 'TIME']
+devName = deviceList_df.iloc[devIndex]['Device']
+devMAC = deviceList_df.iloc[devIndex]['MAC']
 
-theUnit = 30
+devMAC = ' '.join(devMAC.split())
 
-j = theUnit
-print('THIS IS J: ', j)
+routerMAC = '14:cc:20:51:33:ea'
+print(devName, '==', devMAC)
 
-if j == theUnit:
+try:
+    device_df_t1 = df[df['eth.src'] == devMAC]  # clear
+    # device_df_goingOut = device_df_t1[findDomainType(device_df_t1['IP.dst']) == 'foreign']  # clear
 
-# for j, row in deviceList_df.iterrows():
+    # collecting foreign bound traffic
+    destinationsFrgn = [None]
+    destinationsFrgnName = [None]
+    destinationFrgnSizes = [None]
 
-    devName = deviceList_df.iloc[j]['Device']
-    devMAC = deviceList_df.iloc[j]['MAC']
+    destinationsLocal = [None]
+    destinationsLocalName = [None]
+    destinationLocalSizes = [None]
 
-    devMAC = ' '.join(devMAC.split())
 
-    logName = devName+"_logFile.txt"
-    logName2 = devName+"_IPADDRESSES.txt"
+    for i, row in device_df_t1.iterrows():
+        typeD = findDomainType(row['IP.dst'])
+        # fix 0 and broadcasting addresses
+        if typeD == 'foreign':
+            destinationsFrgn.append(row['IP.dst'])
+            destinationFrgnSizes.append(row['Size'])
+            # destinationsFrgnName.append(findDomainName(row['IP.dst']))
 
-    logfile = open("data/original/"+fileName+"/"+logName, "w+")
-    ipAddressFile = open("data/original/"+fileName+"/"+logName2, "w+")
-
-    figName = devName
-
-    try:
-        device_df_t1 = df[df['eth.src'] == devMAC] # clear
-
-        if device_df_t1.empty:
-            print("THIS IS EMPTY")
-
+        elif typeD == 'local':
+            destinationsLocal.append(row['IP.dst'])
+            destinationLocalSizes.append(row['Size'])
         else:
-            device_df_dest = device_df_t1[['IP.dst', 'TIME']] # clear
-            er1 = device_df_dest.groupby('IP.dst')['TIME'].apply(list) # clear
+            print('********: ', row['IP.dst'])
+            destinationsFrgn.append(row['IP.dst'])
+            destinationFrgnSizes.append(row['Size'])
 
-            numberOfDevices = len(er1)
-            ipAddresses = er1.index.tolist()
+    destinationsFrgn = filter(None, destinationsFrgn)
+    destinationsLocal = filter(None, destinationsLocal)
+    destinationFrgnSizes = filter(None, destinationFrgnSizes)
+    destinationLocalSizes = filter(None, destinationLocalSizes)
 
-            print(numberOfDevices)
+    sumOfSizesLocal = sum(destinationLocalSizes)
+    sumOfSizesFrgn = sum(destinationFrgnSizes)
 
-            i = 0
+    plt.pie([sumOfSizesLocal, sumOfSizesFrgn], labels=['Local', 'Internet'], colors=['Red', 'Blue'], autopct='%1.1f%%',
+            shadow=True, startangle=140)
+    plt.show()
 
-            fig, ax = plt.subplots()
+    print('=============')
+    print (sumOfSizesLocal)
 
-            while i < numberOfDevices:
+except IOError:
+    print(devName + ': An error occured trying to read the file.')
+    # logfile.write(devName + ': IO error.\n')
 
-                lengthOfList = len(er1[i])
-                listOfDummys = np.ones(lengthOfList)+i # clear
-                plt.scatter(er1[i], listOfDummys, s=2)
-                ipAddressFile.write(str(i)+': '+ipAddresses[i]+'\n')
+except ValueError:
+    print(devName + ': Non-numeric data found in the file.')
+    # logfile.write(devName + ': Value error.\n')
 
-                i = i+1
+except ImportError:
+    print (devName + ': NO module found')
+    # logfile.write(devName + ': Import error.\n')
 
-                # listOfDummys.clear()
+except EOFError:
+    print(devName + ':Why did you do an EOF on me?')
+    # logfile.write(devName + ': EOF error.\n')
 
-            # clear here
-            # device_df_dest.drop(toDrop, inplace = True, axis=1)
-            ax.legend()
-            ax.grid(True)
-            plt.savefig("data/original/"+fileName+"/"+figName+str(j)+".png", figsize=(20, 18), dpi=200)
+except KeyboardInterrupt:
+    print(devName + ': You cancelled the operation.')
+    # logfile.write(devName + ': Keyboard interrupt.\n')
 
-            print(devName + " completed")
-
-    except IOError:
-        print(devName+': An error occured trying to read the file.')
-        logfile.write(devName+': IO error.\n')
-
-    except ValueError:
-        print(devName+': Non-numeric data found in the file.')
-        logfile.write(devName + ': Value error.\n')
-
-    except ImportError:
-        print (devName+': NO module found')
-        logfile.write(devName + ': Import error.\n')
-
-    except EOFError:
-        print(devName+':Why did you do an EOF on me?')
-        logfile.write(devName + ': EOF error.\n')
-
-    except KeyboardInterrupt:
-        print(devName+': You cancelled the operation.')
-        logfile.write(devName + ': Keyboard interrupt.\n')
-
-    except:
-        print(devName+' :An error occured.')
-        logfile.write(devName + ': Unknown error.\n')
-
-    logfile.close()
-    ipAddressFile.close()
-
-# classify as inside and outside devices
+# except:
+#     print(devName + ' :An error occured.')
+    # logfile.write(devName + ': Unknown error.\n')
