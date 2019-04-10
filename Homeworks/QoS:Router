@@ -1,0 +1,16 @@
+Quality of Service (QoS) needs to be implemented in routers
+
+If a network function can be implemented using only the knowledge from end systems of a network, then it is considered as an end to end 
+system. This means that if enough information is provided by the end systems, then a particular function can be implemented without any 
+involvement from the low level devices of the network and routers. 
+QoS addresses the issue of timeliness. It does not provide services such as delivery guarantee, secure transmission and flow/congestion 
+control which are implemented in the end systems and not in routers. Since time of delivery is directly impacted by factors such as the 
+condition and the length of the path, end systems alone cannot implement this service.
+The decision to use expedited service is made by the end systems. There are four main steps in the implementation of QoS: flow 
+specification, admission control, resource reservation and packet scheduling. 
+Flow specifications are decided by the sender and the receiver depending on the requirements they need. Hence, this is a function of the 
+end systems. Admission control is done in routers where each router takes a look at the specifications given by the end systems and decide 
+whether they can be serviced. Hence this is a functionality of the routers. If the routers decide to service the request, then each of them
+has to reserve enough resources. Therefore, resource reservation is also a functionality of the routers. The final step, packet scheduling,
+is where each packet needs to be classified as belonging to a flow that needs expedited service or regular service. This step is also 
+carried out in routers.   
